@@ -1,0 +1,26 @@
+Catalyst::Plugin::ForwardChained
+
+Forwarding to "Chain"-Actions in Catalyst
+
+01. INSTALLATION
+
+To install this module perform the typical four-part Perl salute:
+
+   perl Makefile.PL
+   make
+   make test
+   make install
+
+02. COPYRIGHT AND LICENCE
+
+Copyright (c) 2010 Ulrich Kautz.
+
+This library is free software and may be distributed under the same terms as perl itself.
+
+03. AUTHORS
+
+Ulrich Kautz <uk@fortrabbit.de>
+
+04. LINKS
+
+http://blog.foaa.de/decency
