@@ -3,6 +3,8 @@ package Mail::Decency::Policy::CWL;
 use Moose;
 extends 'Mail::Decency::Policy::Core::CWLCBL';
 
+use version 0.77; our $VERSION = qv( "v0.1.0" );
+
 use mro 'c3';
 
 use Data::Dumper;

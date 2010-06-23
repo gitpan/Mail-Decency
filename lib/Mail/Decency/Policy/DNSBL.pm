@@ -4,6 +4,8 @@ use Moose;
 use mro 'c3';
 extends 'Mail::Decency::Policy::Core';
 
+use version 0.77; our $VERSION = qv( "v0.1.0" );
+
 use Net::DNSBL::Client;
 use Data::Dumper;
 use Mail::Decency::Helper::IP qw/ is_local_host /;

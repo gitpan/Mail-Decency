@@ -3,6 +3,8 @@ package Mail::Decency::Policy::Core;
 use Moose;
 extends 'Mail::Decency::Core::Child';
 
+use version 0.77; our $VERSION = qv( "v0.1.0" );
+
 =head1 NAME
 
 Mail::Decency::Policy::Core

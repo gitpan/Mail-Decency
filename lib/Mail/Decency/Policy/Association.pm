@@ -5,6 +5,8 @@ extends qw/
     Mail::Decency::Policy::Core
 /;
 
+use version 0.77; our $VERSION = qv( "v0.1.0" );
+
 use Mail::Decency::Helper::IP qw/ is_local_host /;
 use Net::DNS;
 use Net::Netmask;

@@ -3,6 +3,8 @@ package Mail::Decency::Policy::Throttle;
 use Moose;
 extends 'Mail::Decency::Policy::Core';
 
+use version 0.77; our $VERSION = qv( "v0.1.0" );
+
 use mro 'c3';
 use Scalar::Util qw/ weaken /;
 use POSIX qw/ ceil /;
