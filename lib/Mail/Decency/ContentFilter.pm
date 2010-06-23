@@ -9,7 +9,7 @@ with qw/
     Mail::Decency::Core::Stats
 /;
 
-use version 0.77; our $VERSION = qv( "v0.1.0" );
+use version 0.77; our $VERSION = qv( "v0.1.2" );
 
 use feature qw/ switch /;
 
@@ -61,14 +61,13 @@ You have to edit two files: master.cf and main.cf in /etc/postfix
 Add the following to the end of your master.cf file:
 
     # the decency server itself
-    decency	unix  -       -       n       -       2        smtp
+    decency	unix  -       -       n       -       4        smtp
         -o smtp_send_xforward_command=yes
         -o disable_dns_lookups=yes
         -o max_use=20
-    
-    # this is only required if you use virus or spam filters with bouncing
-    decency-bounce unix	-	n	n	-	2	pipe
-        flags=FR user=decency argv=/etc/decency/bouncer
+        -o smtp_send_xforward_command=yes
+        -o disable_mime_output_conversion=yes
+        -o smtp_destination_recipient_limit=1
     
     # re-inject mails from decency for delivery
     127.0.0.1:10250      inet  n       -       -       -       -       smtpd
@@ -77,21 +76,10 @@ Add the following to the end of your master.cf file:
         -o smtpd_helo_restrictions=
         -o smtpd_client_restrictions=
         -o smtpd_sender_restrictions=
-        -o smtpd_recipient_restrictions=permit_mynetworks,reject
+        -o smtpd_recipient_restrictions=permit_mynetworks,reject_unauth_destination,permit
         -o mynetworks=127.0.0.0/8
         -o smtpd_authorized_xforward_hosts=127.0.0.0/8
-    
-    # re-inject mails from decency for bouncing
-    # this is only required if you use virus or spam filters with bouncing
-    127.0.0.1:10260	inet	n	-	-	-	-	smtpd
-        -o content_filter=decency-bounce
-        -o receive_override_options=no_unknown_recipient_checks,no_header_body_checks,no_milters
-        -o smtpd_helo_restrictions=
-        -o smtpd_client_restrictions=
-        -o smtpd_sender_restrictions=
-        -o smtpd_recipient_restrictions=permit_mynetworks,reject
-        -o mynetworks=127.0.0.0/8
-        -o smtpd_authorized_xforward_hosts=127.0.0.0/8
+
 
 =head2 main.cf
 
@@ -104,7 +92,7 @@ There are two possible ways you can include this content filter into postfix. Th
 The advantage: it is easy. The disadvantage: all mails (incoming, outgoing) will be filtered. In a one-mailserver-for-all configuration this might be ugly.
 
     # main.cf
-    content_filter = decency:127.0.0.1:12345
+    content_filter = decency:127.0.0.1:16000
 
 =item * Via check_*_access
 
@@ -112,12 +100,14 @@ And example using pcre on all mails would be:
 
     # main.cf
     smtpd_client_restrictions =
+        # ...
         check_client_access = pcre:/etc/postfix/decency-filter, reject
+        # ...
 
 Then in the /etc/postfix/decency-filter file:
 
     # /path/to/access
-    /./ FILTER decency:127.0.0.1:12345
+    /./ FILTER decency:127.0.0.1:16000
 
 
 =head1 CONFIG
@@ -128,85 +118,79 @@ Example:
 
     ---
     
-    # enable log to syslog
-    enable_syslog: 1
+    spool_dir: /var/spool/decency
     
-    # enable log to STDERR (for forground mode)
-    enable_warn: 1
-    
-    # log output level .. 0 to 5
-    log_level: 20
-    
-    # directory for saving mails temporarily while filtering
-    spool_dir: /tmp/deceny-filter-spool
-    
-    
-    # if the content filter does not use the same cache as the policy does
-    #   and you use foward_scoring, then you should set a keyword which
-    #   proves that the header originates from the policy server and is not
-    #   injected by a spammer!
-    policy_verify_key: /etc/decency/sign.pub
-    
-    # this enables receival of scoring results from the policy server
     accept_scoring: 1
+    policy_verify_key: sign.pub
     
-    # how to handle spam (if you use spam modules)
+    notification_from: 'Postmaster <postmaster@localhost>'
+    
+    enable_stats: 1
+    
+    
+    include:
+        - logging.yml
+        - database.yml
+        - cache.yml
+    
+    server:
+        host: 127.0.0.1
+        port: 16000
+        instances: 3
+    
+    reinject:
+        host: 127.0.0.1
+        port: 10250
+    
     spam:
-        
-        # there are three:
-        #   scoring = check through all scoring capable modules, account, decide
-        #   strict = first module find anything wrong triggers handling
-        #   ignore = dont do anything, just run the modules (for debugging)
         behavior: scoring
+        threshold: -50
+        handle: tag
+        noisy_headers: 1
+        spam_subject_prefix: "SPAM:"
         
-        # if behavior is scoring: amount of score to consider the mail as spam
-        threshold: -150
-        
-        # if spam (scoring+score>threshold or strict), what to do
-        #   tag = tag mail (X-Decency) as spam
-        #   bounce = send back to sender (BACKSCATTER! NOT A GOOD IDEA)
-        #   delete = silently remove (for the hardcore haters)
-        handle: bounce
-        
-        # only for handle = tag, prefix for the subject of spam mails 
-        #spam_subject_prefix:
+        # for handle: bounce or delete:
+        #notify_recipient: 1
+        #recipient_template: 'templates/spam-recipient-notify.tmpl'
+        #recipient_subject: 'Spam detection notification'
     
-    # how to handle virus mails (if you use antivirus modules)
     virus:
-        # what to do with virus mails?
-        #   bounce = send back (without virus!) to sender
-        #   delete = remove mail permanently
-        #   quarantine = move into quarantine directory (below)
-        #   ignore = don't do anything (for debugging)
         handle: bounce
         
-        # wheter send a notification to the recipient or not. 
-        #   does not work with handle = ignore (of course)
-        notify: 0
+        # for handle: bounce, delete or quarantine
+        notify_sender: 1
+        notify_recipient: 1
+        sender_template: 'templates/virus-sender-notify.tmpl'
+        sender_subject: 'Virus detection notification'
+        recipient_template: 'templates/virus-recipient-notify.tmpl'
+        recipient_subject: 'Virus detection notification'
     
     
-    database:
-        type: dbi
-        args:
-            - 'dbi:SQLite:dbname=/tmp/decency.db'
-    
-    cache:
-        class: File
-        cache_root: /tmp/decency-cache
-    
-    # all the content filters to use
-    #   the order they are provided here will be the order
-    #   they are applied
-    #   so you might want to put virus filters in the front, then
-    #   spam filters, then any possible manipulation filters
     filters:
+        #- MimeAttribs: "content-filter/mime-attribs.yml"
+        - DKIM: "content-filter/dkim.yml"
+        # - ClamAV: content-filter/clamav.yml
+        - Bogofilter: content-filter/bogofilter.yml
+        #- DSPAM: content-filter/dspam.yml
+        - CRM114: content-filter/crm114.yml
+        - Razor: content-filter/razor.yml
+        - HoneyCollector: content-filter/honey-collector.yml
+        # -
+        #     SpamAssassin:
+        #         disable: 0
+        #         default_user:
+        #         weight_translate:
+        #             1: -100
+        #             -2: 0
+        #             -3: 100
+        - Archive: content-filter/archive.yml
     
-                                         
+
 
 =head1 CLASS ATTRIBUTES
 
 
-=head2 spool_dir
+=head2 spool_dir : Str
 
 The directory where to save received mails before filtering
 
@@ -214,7 +198,7 @@ The directory where to save received mails before filtering
 
 has spool_dir => ( is => 'rw', isa => 'Str' );
 
-=head2 temp_dir
+=head2 temp_dir : Str
 
 Holds temp files for modules
 
@@ -222,7 +206,7 @@ Holds temp files for modules
 
 has temp_dir => ( is => 'rw', isa => 'Str' );
 
-=head2 queue_dir
+=head2 queue_dir : Str
 
 Holds queued mails (currently working on)
 
@@ -230,7 +214,7 @@ Holds queued mails (currently working on)
 
 has queue_dir => ( is => 'rw', isa => 'Str' );
 
-=head2 mime_output_dir
+=head2 mime_output_dir : Str
 
 Directory for temporary mime output .. required by MIME::Parser
 
@@ -240,7 +224,7 @@ Defaults to spool_dir/mime
 
 has mime_output_dir => ( is => 'rw', isa => 'Str' );
 
-=head2 reinject_failure_dir
+=head2 reinject_failure_dir : Str
 
 Directory for reinjection failures
 
@@ -250,7 +234,7 @@ Defaults to spool_dir/failure
 
 has reinject_failure_dir => ( is => 'rw', isa => 'Str' );
 
-=head2 quarantine_dir
+=head2 quarantine_dir : Str
 
 Directory for quarantined mails (virus, spam)
 
@@ -266,37 +250,171 @@ There is either spam scoring, strict or keep.
 
 Keep account on positive or negative score per file. Each filter module may increment or decrement score on handling the file. The overall score determines in the end wheter to bounce or re-inject the mail.
 
+=head3 spam_behavior : Str
+
+How to determine what is spam. Either scoring, strict or ignore
+
+Default: scoring
+
 =cut
 
-has spam_behavior           => ( is => 'rw', isa => 'Str', default => 'ignore' );
-has spam_handle             => ( is => 'rw', isa => 'Str', default => 'tag' );
-has spam_subject_prefix     => ( is => 'rw', isa => 'Str', predicate => 'has_spam_subject_prefix' );
-has spam_threshold          => ( is => 'rw', isa => 'Int', default => -100 );
-has spam_notify_recipient   => ( is => 'rw', isa => 'Bool', default => 0 );
+has spam_behavior => ( is => 'rw', isa => 'Str', default => 'scoring' );
+
+=head3 spam_handle : Str
+
+What to do with recognized spam. Either tag, bounce or delete
+
+Default: tag
+
+=cut
+
+has spam_handle => ( is => 'rw', isa => 'Str', default => 'tag' );
+
+=head3 spam_subject_prefix : Str
+
+If spam_handle is tag: "Subject"-Attribute prefix for recognized SPAM mails.
+
+=cut
+
+has spam_subject_prefix => ( is => 'rw', isa => 'Str', predicate => 'has_spam_subject_prefix' );
+
+=head3 spam_threshold : Int
+
+For spam_behavior: scoring. Each cann add/remove a score for the filtered mail. SPAM scores are negative, HAM scores positive. If this threshold is reached, the mail is considered SPAM.
+
+Default: -100
+
+=cut
+
+has spam_threshold => ( is => 'rw', isa => 'Int', default => -100 );
+
+=head3 spam_notify_recipient : Bool
+
+If enabled -> send recipient notification if SPAM is recognized.
+
+Default: 0
+
+=cut
+
+has spam_notify_recipient => ( is => 'rw', isa => 'Bool', default => 0 );
+
+=head3 spam_recipient_template : Str
+
+Path to template used for SPAM notification.
+
+=cut
+
 has spam_recipient_template => ( is => 'rw', isa => 'Str' );
-has spam_recipient_subject  => ( is => 'rw', isa => 'Str', default => 'Spam detected' );
-has spam_noisy_headers      => ( is => 'rw', isa => 'Bool', default => 0 );
+
+=head3 spam_recipient_subject : Str
+
+Subject of the recipient's SPAM notification mail
+
+Default: Spam detected
+
+=cut
+
+has spam_recipient_subject => ( is => 'rw', isa => 'Str', default => 'Spam detected' );
+
+=head3 spam_noisy_headers : Bool
+
+Wheter X-Decency headers in mail should contain detailed information.
+
+Default: 0
+
+=cut
+
+has spam_noisy_headers => ( is => 'rw', isa => 'Bool', default => 0 );
 
 =head2 virus_*
 
 Virus handling
 
+=head3 virus_handle : Str
+
+What to do with infected mails ? Either: bounce, delete or quarantine
+
+Default: ignore
+
 =cut
 
-has virus_handle             => ( is => 'rw', isa => 'Str', default => 'ignore' );
-has virus_notify_recipient   => ( is => 'rw', isa => 'Bool', default => 0 );
+has virus_handle => ( is => 'rw', isa => 'Str', default => 'ignore' );
+
+=head3 virus_notify_recipient : Bool
+
+Wheter to notofy the recipient about infected mails.
+
+Default: 0
+
+=cut
+
+has virus_notify_recipient => ( is => 'rw', isa => 'Bool', default => 0 );
+
+=head3 virus_recipient_template : Str
+
+Path to template used for recipient notification
+
+=cut
+
 has virus_recipient_template => ( is => 'rw', isa => 'Str' );
-has virus_recipient_subject  => ( is => 'rw', isa => 'Str', default => 'Virus detected' );
-has virus_notify_sender      => ( is => 'rw', isa => 'Bool', default => 0 );
-has virus_sender_template    => ( is => 'rw', isa => 'Str' );
-has virus_sender_subejct     => ( is => 'rw', isa => 'Str', default => 'Virus detected' );
+
+=head3 virus_recipient_subject : Str
+
+Subject of the recipient's notification mail
+
+Default: Virus detected
+
+=cut
+
+has virus_recipient_subject => ( is => 'rw', isa => 'Str', default => 'Virus detected' );
+
+=head3 virus_notify_sender : Str
+
+Wheter to notify the sender of an infected mail (NOT A GOOD IDEA: BACKSCATTER!)
+
+Default: 0
+
+=cut
+
+has virus_notify_sender => ( is => 'rw', isa => 'Bool', default => 0 );
+
+=head3 virus_sender_template : Str
+
+Path to sender notification template
+
+=cut
+
+has virus_sender_template => ( is => 'rw', isa => 'Str' );
+
+=head3 virus_sender_subject : Str
+
+Subject of the sender notification
+
+Default: Virus detected
+
+=cut
+
+has virus_sender_subject => ( is => 'rw', isa => 'Str', default => 'Virus detected' );
 
 
-=head2 policy_verify_key
+=head2 accept_scoring : Bool
+
+Wheter to accept scoring from (external) policy server.
+
+Default: 0
 
 =cut
 
 has accept_scoring => ( is => 'rw', isa => 'Bool', default => 0 );
+
+=head2 policy_verify_key : Str
+
+Path to public (verification) key for scoring verification
+
+Default: 0
+
+=cut
+
 has policy_verify_key => ( is => 'rw', isa => 'Str', predicate => 'has_policy_verify_key', trigger => sub {
     my ( $self, $key_file ) = @_;
     
@@ -318,10 +436,17 @@ has policy_verify_key => ( is => 'rw', isa => 'Str', predicate => 'has_policy_ve
     
     return;
 } );
+
+=head2 policy_verify_key_rsa : Crypt::OpenSSL::RSA
+
+Instance of verification key (L<Crypt::OpenSSL::RSA>)
+
+=cut
+
 has policy_verify_key_rsa => ( is => 'rw', isa => 'Crypt::OpenSSL::RSA' );
 
 
-=head2 session_data
+=head2 session_data : Mail::Decency::Core::SessionItem::ContentFilter
 
 SessionItem (L<Mail::Decency::Core::SessionItem::ContentFilter>) of the current handle file
 
@@ -330,19 +455,27 @@ SessionItem (L<Mail::Decency::Core::SessionItem::ContentFilter>) of the current 
 has session_data => ( is => 'rw', isa => 'Mail::Decency::Core::SessionItem::ContentFilter' );
 
 
+=head2 notification_from : Str
+
+Notification sender (from address)
+
+Default: Postmaster <postmaster@localhost>
+
+=cut
+
+has notification_from => ( is => 'rw', isa => 'Str', default => 'Postmaster <postmaster@localhost>' );
+
 
 =head1 METHODS
 
 =head2 init
 
-INit cache, database, logger, dirs and content filter
+Init cache, database, logger, dirs and content filter
 
 =cut
 
 sub init {
     my ( $self ) = @_;
-    
-    
     
     # mark es inited
     $self->{ inited } ++;
@@ -352,6 +485,10 @@ sub init {
     $self->init_database();
     $self->init_dirs();
     $self->init_content_filters();
+    
+    # set from..
+    $self->notification_from( $self->config->{ notification_from } )
+        if $self->config->{ notification_from };
     
     # having scoring ?
     if ( defined( my $virus_ref = $self->config->{ virus } ) && ref( $self->config->{ virus } ) ) {
@@ -732,6 +869,16 @@ sub train {
 
 =head2 get_handlers
 
+Returns code ref to handlers
+
+    my $handlers_ref = $content_filter->get_handlers();
+    $handlers_ref->( {
+        file => '/tmp/somefile',
+        size => -s '/tmp/somefile',
+        from => 'sender@domain.tld',
+        to   => 'recipient@domain.tld',
+    } );
+
 =cut
 
 sub get_handlers {
@@ -948,17 +1095,25 @@ sub handle {
 
 =head2 finish_spam
 
-Got a spam mail -> handle it as spam. Either bounce, tag or delete
+Called after modules have filtered the mail. Will perform according to spam_handle directive.
 
 =over
 
 =item * delete
 
-With this handle, the mail will be removed. A notification might be send to the recipient.
+Remvoe mail silently
 
 =item * bounce
 
-The mail is bounced back to the sender.
+Bounce mail back to sender
+
+=item * ignore
+
+Ignore mail, simply forward
+
+=item * tag
+
+Tag mail, insert X-Decency-Status and X-Decency-Score headers. If detailed: also X-Decency-Details header. 
 
 =back
 
@@ -1003,9 +1158,9 @@ sub finish_spam {
         }
         
         # add tag
-        $header->replace( 'X-Decency-Result'   => 'SPAM' );
-        $header->replace( 'X-Decency-Score'    => $score );
-        $header->replace( 'X-Decency-SpamInfo' => join( " | ", @info ) )
+        $header->replace( 'X-Decency-Result'  => 'SPAM' );
+        $header->replace( 'X-Decency-Score'   => $score );
+        $header->replace( 'X-Decency-Details' => join( " | ", @info ) )
             if $self->spam_noisy_headers;
         
         # update mime
@@ -1019,7 +1174,27 @@ sub finish_spam {
 
 =head2 finish_virus
 
-Reinject mail into mailserver
+Mail has been recognized as infected. Handle it according to virus_handle
+
+=over
+
+=item * bounce
+
+Send back to sender
+
+=item * delete
+
+Silently remove
+
+=item * quarantine
+
+Do not deliver mail, move it into quarantine directory.
+
+=item * ignore
+
+Deliver to recipient
+
+=back
 
 =cut
 
@@ -1057,13 +1232,12 @@ sub finish_virus {
             $session->from, $session->to, $session->file_size, $session->virus ) );
         return $self->reinject;
     }
-    
 }
 
 
 =head2 finish_ok
 
-Reinject mail into mailserver
+Called after mails has not been recognized as virus nor SPAM. Do deliver to recipient. With noisy_headers, include spam X-Decency-(Result|Score|Details) into header.
 
 =cut
 
@@ -1161,7 +1335,9 @@ sub reinject {
 
 =head2 send_notify
 
-Encapses a mime mail with either virus or spam template. 
+Send either spam or virus notification
+
+    $content_filter->send_notify( virus => recipient => 'recipient@domain.tld' );
 
 =cut
 
@@ -1252,7 +1428,7 @@ sub send_notify {
 
 =head2 session_init
 
-Returns hashref of info's about a mail (file) .. containgin original "MAIL FROM" (from), "RCPT TO" (to), if anyone requires the pre-encoded mime, then also mime object
+Inits the L<Mail::Decency::Core::SessionItem::ContentFilter> session object for the current handled mail.
 
 =cut
 
@@ -1305,7 +1481,7 @@ sub session_init {
 
 =head2 session_write_cache
 
-Write mail info to caches
+Write session to cache. Called at the end of the session.
 
 =cut
 
@@ -1360,7 +1536,7 @@ sub session_write_cache {
 
 =head2 add_spam_score
 
-Add score to global counter for current filter queue
+Add spam score (positive/negative). If threshold is reached -> throw L<Mail::Decency::Core::Exception::Spam> exception.
 
 =cut
 
@@ -1401,7 +1577,7 @@ sub add_spam_score {
 
 =head2 virus_info
 
-Call found a virus from module
+Virus is found. Throw L<Mail::Decency::Core::Exception::Virus> exception.
 
 =cut
 

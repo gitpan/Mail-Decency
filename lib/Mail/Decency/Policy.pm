@@ -9,7 +9,7 @@ with qw/
     Mail::Decency::Core::ExportImport
 /;
 
-use version 0.77; our $VERSION = qv( "v0.1.0" );
+use version 0.77; our $VERSION = qv( "v0.1.2" );
 
 use feature qw/ switch /;
 
@@ -48,6 +48,19 @@ Mail::Decency::Policy
 
 Policy server for Postfix or other MTAs. Could be combined with L<Mail::Decency::ContentFilter>. Besides the existing Modules it is easy extendable for custom needs.
 
+=head1 POSTFIX
+
+To implement this in postfix, add a "check_policy_service" directive in one of the restriction classes: 
+
+    smtpd_recipient_restrictions =
+        # ...
+        check_policy_service inet:127.0.0.1:15000
+        # ...
+
+If you want to place this anywhere before the smtpd_recipient_restrictions, you probaly have to enable "smtpd_delay_reject" (depending on the modules you use, but to be save..)
+
+    smtpd_delay_reject = yes
+
 =head1 CONFIG
 
 The configuration can be provided via YAML file or as HashRef.
@@ -62,11 +75,9 @@ Example:
         - logging.yml
     
     weight_threshold: -100
-    
-    force_check_local: 0
+    force_check_local: 1
     
     default_reject_message: "use decency"
-    
     no_reject_detail: 0
     
     disable_prepend: 0
@@ -100,7 +111,7 @@ Example:
 See L<Mail::Decency::Policy::Core>
 
 
-=head2 weight_threshold
+=head2 weight_threshold : Int
 
 Threshold of spam score before reject ( actual score <= threeshold == spam )
 
@@ -108,7 +119,7 @@ Threshold of spam score before reject ( actual score <= threeshold == spam )
 
 has weight_threshold => ( is => 'rw', isa => 'Int', default => -100 );
 
-=head2 session_data
+=head2 session_data : Mail::Decency::Core::SessionItem::Policy
 
 Instance of L<Mail::Decency::Core::SessionItem::Policy>
 
@@ -116,7 +127,7 @@ Instance of L<Mail::Decency::Core::SessionItem::Policy>
 
 has session_data => ( is => 'rw', isa => 'Mail::Decency::Core::SessionItem::Policy' );
 
-=head2 pass_localhost
+=head2 pass_localhost : Bool
 
 Wheter passing everything from localhost or not
 
@@ -126,9 +137,9 @@ Default: 1
 
 has pass_localhost => ( is => 'rw', isa => 'Bool', default => 1 );
 
-=head2 default_reject_message
+=head2 default_reject_message : Str
 
-Default reject message string (after REJECT)
+Default reject message string (after the SMTP REJECT command .. "REJECT message")
 
 Default: use decency
 
@@ -137,7 +148,7 @@ Default: use decency
 has default_reject_message => ( is => 'rw', isa => 'Str', default => "use decency" );
 
 
-=head2 no_reject_detail
+=head2 no_reject_detail : Bool
 
 Wheter pass detailed information of why a particular REJECT has been thrown to the sender or not (not=always the default message)/
 
@@ -145,9 +156,9 @@ Default: 0
 
 =cut
 
-has no_reject_detail       => ( is => 'rw', isa => 'Bool', default => 0 );
+has no_reject_detail => ( is => 'rw', isa => 'Bool', default => 0 );
 
-=head2 forward_scoring
+=head2 forward_scoring : Bool
 
 Wheter forward scoring informations after policies or not
 
@@ -157,7 +168,7 @@ Default: 0
 
 has forward_scoring => ( is => 'rw', isa => 'Bool', default => 0 );
 
-=head2 disable_prepend
+=head2 disable_prepend : Bool
 
 Wheter disabling the prepend of instance information fully (implies forward_scoring=0)
 
@@ -167,7 +178,7 @@ Default: 0
 
 has disable_prepend => ( is => 'rw', isa => 'Bool', default => 0 );
 
-=head2 forward_sign_key
+=head2 forward_sign_key : Str
 
 Path to a file containing a private key for signing forwarded
 
@@ -202,14 +213,13 @@ has forward_sign_key  => ( is => 'rw', isa => 'Str', predicate => 'has_forward_s
     return;
 } );
 
-=head2 forward_sign_key_priv
+=head2 forward_sign_key_priv : Crypt::OpenSSL::RSA
 
 Instance of L<Crypt::OpenSSL::RSA> representing the forward sign key
 
 =cut
 
 has forward_sign_key_priv => ( is => 'rw', isa => 'Crypt::OpenSSL::RSA' );
-
 
 
 

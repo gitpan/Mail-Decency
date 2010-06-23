@@ -1,6 +1,9 @@
 package Mail::Decency::Core::Meta::Maintenance;
 
 use Moose::Role;
+
+use version 0.77; our $VERSION = qv( "v0.1.0" );
+
 use Mail::Decency::Helper::IntervalParse qw/ interval_to_int /;
 
 =head1 NAME

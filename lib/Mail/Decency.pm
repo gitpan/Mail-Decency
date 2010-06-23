@@ -4,7 +4,7 @@ package Mail::Decency;
 use strict;
 use warnings;
 
-use version 0.77; our $VERSION = qv( "v0.1.1" );
+use version 0.77; our $VERSION = qv( "v0.1.2" );
 
 
 =head1 NAME

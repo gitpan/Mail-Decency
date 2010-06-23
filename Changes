@@ -1,3 +1,10 @@
+0.1.2 2010-06-23 Ulrich Kautz <uk@fortrabbit.de>
+    * forgot one last version ..
+    * update M::D::ContentFilter description
+    * update M::D::Policy description
+    * added M::D::ContentFilter::Cookbook module for introduction
+    * added M::D::Policy::Cookbook module for introduction
+
 0.1.1 2010-06-23 Ulrich Kautz <uk@fortrabbit.de>
     * Forgot some versions..
 

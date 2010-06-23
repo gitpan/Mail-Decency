@@ -6,6 +6,7 @@ lib/Mail/Decency/ContentFilter/Archive.pm
 lib/Mail/Decency/ContentFilter/Bogofilter.pm
 lib/Mail/Decency/ContentFilter/CRM114.pm
 lib/Mail/Decency/ContentFilter/ClamAV.pm
+lib/Mail/Decency/ContentFilter/Cookbook.pm
 lib/Mail/Decency/ContentFilter/Core.pm
 lib/Mail/Decency/ContentFilter/Core/Cmd.pm
 lib/Mail/Decency/ContentFilter/Core/Constants.pm
@@ -52,6 +53,7 @@ lib/Mail/Decency/Policy.pm
 lib/Mail/Decency/Policy/Association.pm
 lib/Mail/Decency/Policy/CBL.pm
 lib/Mail/Decency/Policy/CWL.pm
+lib/Mail/Decency/Policy/Cookbook.pm
 lib/Mail/Decency/Policy/Core.pm
 lib/Mail/Decency/Policy/Core/CWLCBL.pm
 lib/Mail/Decency/Policy/DNSBL.pm
