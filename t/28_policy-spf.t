@@ -10,13 +10,14 @@ use TestMisc;
 use YAML;
 
 BEGIN {
-    use_ok( "Mail::Decency::Policy::SPF" ) or die;
     use_ok( "Net::DNS::Resolver" ) or die;
 };
 
 SKIP: {
     
-    skip "Mail::SPF not installed, skipping tests", 6 unless eval "use Mail::SPF; 1;";
+    skip "Mail::SPF not installed, skipping tests", 5 unless eval "use Mail::SPF; 1;";
+    ok( eval "use Mail::Decency::Policy::SPF; 1;", "Mail::Decency::Policy::SPF Loaded" )
+        or die "could not load: Mail::Decency::Policy::SPF Loaded";
     
     my $policy = TestPolicy::create();
     

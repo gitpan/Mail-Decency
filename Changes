@@ -1,3 +1,8 @@
+0.1.3 2010-06-25 Ulrich Kautz <uk@fortrabbit.de>
+    * Tests fixed (28, 31, 45 and 67): skip if certain modules are not there
+    * M::D::LogParser docu updated
+    * Cookbooks updated (added Hook explanation)
+
 0.1.2 2010-06-23 Ulrich Kautz <uk@fortrabbit.de>
     * forgot one last version ..
     * update M::D::ContentFilter description

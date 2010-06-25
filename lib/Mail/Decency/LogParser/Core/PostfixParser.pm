@@ -2,7 +2,7 @@ package Mail::Decency::LogParser::Core::PostfixParser;
 
 use Moose::Role;
 
-use version 0.77; our $VERSION = qv( "v0.1.0" );
+use version 0.77; our $VERSION = qv( "v0.1.3" );
 
 use Data::Dumper;
 
@@ -23,6 +23,8 @@ our $RX_HOST_AND_IP = qr/([^\]]*?)\[([^\]]+?)\]/;
 =cut
 
 =head2 parse_line
+
+Parses a single line and returns a parsed hashref which will passed to the handling modules.
 
 =cut
 

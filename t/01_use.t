@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-use Test::More tests => 40;
+use Test::More tests => 42;
 
 BEGIN {
     ok( eval "use v5.10; 1", "Perl 5.10" ) or die "Perl 5.10 required";
@@ -13,6 +13,7 @@ BEGIN {
     use_ok( 'DBI' ) or die;
     use_ok( 'DBIx::Connector' ) or die;
     use_ok( 'Getopt::Long' ) or die;
+    use_ok( 'Geo::IP' ) or die;
     use_ok( 'IO::File' ) or die;
     use_ok( 'IO::Handle' ) or die;
     use_ok( 'IO::Pipe' ) or die;
@@ -20,10 +21,11 @@ BEGIN {
     use_ok( 'IO::YAML', '0.08' ) or die;
     use_ok( 'IPC::Semaphore', '2.01' ) or die;
     use_ok( 'IPC::SysV', '2.01' ) or die;
+    use_ok( 'Mail::DKIM', '0.38' ) or die;
+    use_ok( 'Mail::SPF' ) or die;
     use_ok( 'MIME::Lite' ) or die;
     use_ok( 'MIME::Parser' ) or die;
     use_ok( 'MIME::QuotedPrint' ) or die;
-    use_ok( 'Mail::DKIM', '0.38' ) or die;
     use_ok( 'Moose', '1.00' ) or die;
     use_ok( 'Net::Domain::TLD' ) or die;
     use_ok( 'Net::DNS' ) or die;

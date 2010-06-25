@@ -3,7 +3,7 @@ package Mail::Decency::ContentFilter::Cookbook;
 use strict;
 use warnings;
 
-use version 0.77; our $VERSION = qv( "v0.1.0" );
+use version 0.77; our $VERSION = qv( "v0.1.3" );
 
 =head1 NAME
 
@@ -96,7 +96,7 @@ Hope this helps to understand what you can do. Have a look at the existing modul
 
 =head2 VIRUS FILTER EXAMPLE
 
-    package Mail::Decency::ContentFilter::MySpamFilter;
+    package Mail::Decency::ContentFilter::MyVirusFilter;
     
     use Moose;
     extends qw/
@@ -109,6 +109,67 @@ Hope this helps to understand what you can do. Have a look at the existing modul
         # throws exception
         if ( time() % 86400 == 0 ) {
             $self->found_virus( "Your daily virus" );
+        }
+    }
+
+=head2 HOOKS
+
+There are two kinds of hooks which can be implemented by any modules. They exist, because not necessary all modules will be run in every session (eg if the first recognizes the mail as spam and throws an exception).
+
+=head3 PRE FINISH HOOK
+
+Called after the modules are processed. Has to return the status ("virus", "spam", "drop" or "ok") and the final code (CF_FINAL_* from L<Mail::Decency::ContentFilter::Core::Constants>).
+
+    package Mail::Decency::ContentFilter::MyPreHook;
+    
+    use Moose;
+    extends 'Mail::Decency::ContentFilter::Core';
+    use Mail::Decency::ContentFilter::Core::Constants;
+    
+    # example from the HoneyCollector modules, which
+    #   assures marked mails to be collected
+    sub hook_pre_finish {
+        my ( $self, $status ) = @_;
+        
+        # has been flagged..
+        return ( $status, CF_FINAL_OK )
+            if ! $self->session_data->has_flag( 'honey' )
+            || $self->session_data->has_flag( 'honey_collected' )
+        ;
+        
+        # collect the honey
+        $self->_collect_honey();
+        
+        # drop the mail
+        return ( 'drop', CF_FINAL_OK );
+    }
+
+=head2 POST FINISH HOOK
+
+Called after the finish_(ok|spam|virus) methods. Takes the status as arguments and has to return the status and the final code.
+
+    package Mail::Decency::ContentFilter::MyPreHook;
+    
+    use Moose;
+    extends 'Mail::Decency::ContentFilter::Core';
+    use Mail::Decency::ContentFilter::Core::Constants;
+    
+    sub hook_post_finish {
+        my ( $self, $status ) = @_;
+        
+        # force to pass all recognized virus and spams..
+        if ( $status eq 'virus' || $status eq 'spam' ) {
+            return ( ok => CF_FINAL_OK );
+        }
+        
+        # delete all mails recognized as OK
+        elsif ( $status eq 'ok' ) {
+            return ( drop => CF_FINAL_OK );
+        }
+        
+        # bounce mails supposed to be dropped
+        elsif ( $status eq 'drop' ) {
+            return ( ok => CF_FINAL_ERROR );
         }
     }
 

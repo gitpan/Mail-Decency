@@ -4,12 +4,12 @@ package Mail::Decency;
 use strict;
 use warnings;
 
-use version 0.77; our $VERSION = qv( "v0.1.2" );
+use version 0.77; our $VERSION = qv( "v0.1.3" );
 
 
 =head1 NAME
 
-Mail::Decency - Anti-Spam fighting software framework
+Mail::Decency - Anti-Spam fighting framework
 
 
 =head1 DESCRIPTION
@@ -117,6 +117,8 @@ Mail server log analyses is most important for running a healthy system, this tr
 =item * L<Mail::Decency::ContentFilter>
 
 =item * L<Mail::Decency::LogParser>
+
+=item * http://blog.foaa.de/decency
 
 =back
 

@@ -41,6 +41,7 @@ lib/Mail/Decency/Helper/Database/MongoDB.pm
 lib/Mail/Decency/Helper/IP.pm
 lib/Mail/Decency/Helper/IntervalParse.pm
 lib/Mail/Decency/Helper/Logger.pm
+lib/Mail/Decency/LICENSE
 lib/Mail/Decency/LogParser.pm
 lib/Mail/Decency/LogParser/Aggregator.pm
 lib/Mail/Decency/LogParser/Core.pm

@@ -7,7 +7,7 @@ with qw/
     Mail::Decency::Core::Stats
 /;
 
-use version 0.77; our $VERSION = qv( "v0.1.0" );
+use version 0.77; our $VERSION = qv( "v0.1.3" );
 
 use POE qw/
     Wheel::FollowTail
@@ -36,9 +36,7 @@ Mail::Decency::LogParser
 
 =head1 DESCRIPTION
 
-Postfix:DecencyPolicy is a bunch of policy servers which c
-
-Base class for all decency policy handlers.
+The LogParser server provides tools to tail and parse mail server log files. It can implement different log parser styles. For now it supports only postfix log files via L<Mail::Decency::LogParser::Core::PostfixParser>.
 
 =head1 CONFIG
 
@@ -48,33 +46,48 @@ Example:
 
     ---
     
+    include:
+        - logging.yml
+        - database.yml
+        - cache.yml
+    
     syslog:
+        style: Postfix
         file: /var/log/mail.log
-        
-        # or socket
-        # socket: /var/log/mail.socket
     
-    # setup the database
-    database:
-        
-        # what database to use. So far only 'dbi' supported,
-        #   which let you use any DBD::* database via DBIx::Simple
-        type: dbd
-        
-        # arguments for DBD::connect method
-        args:
-            - 'dbi:SQLite:dbname=/tmp/decency.db'
+    parser:
+        -
+            Stats:
+                disable: 0
+                use_date_interval: 1
+                intervals:
+                    - 10
+                    - 600
+                    - 86400
+                
+                csv_log:
+                    file: /var/spool/decency/logs/csv
+                    classes:
+                        - total_reject
+                        - connections
+                        - sent
+                        - deferred
+        -
+            Aggregator:
+                disable: 0
+                interval_formats:
+                    - 'year-%Y'
+                    - 'week-%Y-%U'
+                    - 'month-%Y-%m'
+        -
+            GeoSource:
+                disable: 0
+                interval_formats:
+                    - 'year-%Y'
+                    - 'week-%Y-%U'
+                    - 'month-%Y-%m'
+                enable_per_recipient: 1
     
-    # setup the cache
-    cache:
-    
-        # you can use any cache from Cache::*
-        #   use NONE to deactivate cache
-        class: File
-        
-        # all attributes besides "class" will be handed to
-        #   the Cache::<class>->new constructor
-        cache_root: /tmp/decency-cache
 
 
 =cut
@@ -84,11 +97,30 @@ Example:
 
 See L<Mail::Decency::Policy::Core>
 
+=head2 syslog_file : Str
+
+Path to the syslog file
+
 =cut
 
-has last_pos      => ( is => 'rw', isa => 'Int', default => 0 );
 has syslog_file   => ( is => 'ro', isa => 'Str' );
+
+=head2 syslog_socket : Str
+
+Path to socket for syslog
+
+=cut
+
 has syslog_socket => ( is => 'ro', isa => 'Str' );
+
+
+
+=head2 syslog_file : Str
+
+Path to the syslog file
+
+=cut
+
 has parser        => ( is => 'rw', isa => 'ArrayRef', default => sub { [] } );
 has handle_parse  => ( is => 'rw', isa => 'CodeRef' );
 
@@ -97,7 +129,7 @@ has handle_parse  => ( is => 'rw', isa => 'CodeRef' );
 
 =head2 init
 
-Loads policy modules
+Loads LogParser modules, inits config, cache and databases
 
 =cut
 
@@ -116,7 +148,7 @@ sub init {
     ;
     with $role;
     
-    
+    # init logger, cache, database
     $self->init_logger();
     $self->init_cache();
     $self->init_database();
@@ -155,16 +187,17 @@ sub init_syslog_parser {
     die "'parser' supposed to be an arrayref, got ". ref( $parsers_ref ). "\n"
         unless ref( $parsers_ref ) eq 'ARRAY';
     
-    my @parsers = ();
-    foreach my $parser_ref( @$parsers_ref ) {
+    foreach my $parser_ref( @{ $parsers_ref } ) {
+        
+        # get name anf config
         my ( $name, $config_ref ) = %$parser_ref;
         
-        my $parser = $self->gen_child(
-            "Mail::Decency::LogParser" => $name, $config_ref, {} );
+        # setup enw filter
         
-        push @parsers, $parser if $parser;
+        my $parser = $self->gen_child(
+            "Mail::Decency::LogParser" => $name => $parser_ref );
+        $parser_ref->{ $name } = $parser->config if $parser;
     }
-    $self->parser( \@parsers );
 }
 
 
@@ -193,11 +226,12 @@ sub start {
             
             read_line => sub {
                 my $parsed_ref = $self_weak->parse_line( $_[ ARG0 ] );
-                $self->handle( $parsed_ref ) if $parsed_ref && $parsed_ref->{ final };
+                $self->handle( $parsed_ref )
+                    if $parsed_ref && $parsed_ref->{ final };
             },
             
             rotate_log => sub {
-                
+                # for now: not required
             },
             
             _default => sub {
@@ -225,12 +259,14 @@ sub run {
 
 =head2 handle
 
+Handle method, called by the L<POE::Wheel::FollowTail> instance on each tailed line.
+
 =cut
 
 sub handle {
     my ( $self, $parsed_ref ) = @_;
     
-    foreach my $parser( @{ $self->parser } ) {
+    foreach my $parser( @{ $self->childs } ) {
         eval {
             $parser->handle( $parsed_ref );
         };

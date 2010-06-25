@@ -3,7 +3,7 @@ package Mail::Decency::Policy::Cookbook;
 use strict;
 use warnings;
 
-use version 0.77; our $VERSION = qv( "v0.1.0" );
+use version 0.77; our $VERSION = qv( "v0.1.3" );
 
 =head1 NAME
 
@@ -92,6 +92,33 @@ Hope this helps to understand what you can do. Have a look at the existing modul
         # access session data
         warn "> CURRENT SPAM SCORE ". $self->session_data->spam_score. "\n";
     }
+
+=head1 INCLUDE MODULE
+
+To include the module, simple add it in your contnet filter
+
+=head2 YAML
+
+In policy.yml ...
+
+    ---
+    
+    # ..
+    
+    policy:
+        - MyModule:
+            some_key: 1
+        - MyModule: /path/to/my-module.yml
+    
+
+=head2 PERL
+
+    my $policy = Mail::Decency::Policy->new(
+        # ..
+        policy => [
+            { MyModule => { some_key => 1 } }
+        ]
+    );
 
 
 =head1 AUTHOR
