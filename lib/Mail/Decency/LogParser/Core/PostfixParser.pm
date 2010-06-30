@@ -2,7 +2,7 @@ package Mail::Decency::LogParser::Core::PostfixParser;
 
 use Moose::Role;
 
-use version 0.77; our $VERSION = qv( "v0.1.3" );
+use version 0.74; our $VERSION = qv( "v0.1.4" );
 
 use Data::Dumper;
 

@@ -3,7 +3,7 @@ package Mail::Decency::ContentFilter::Cookbook;
 use strict;
 use warnings;
 
-use version 0.77; our $VERSION = qv( "v0.1.3" );
+use version 0.74; our $VERSION = qv( "v0.1.4" );
 
 =head1 NAME
 

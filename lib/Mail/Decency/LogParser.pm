@@ -7,7 +7,7 @@ with qw/
     Mail::Decency::Core::Stats
 /;
 
-use version 0.77; our $VERSION = qv( "v0.1.3" );
+use version 0.74; our $VERSION = qv( "v0.1.4" );
 
 use POE qw/
     Wheel::FollowTail

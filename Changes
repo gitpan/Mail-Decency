@@ -1,3 +1,11 @@
+0.1.4 2010-06-30 Ulrich Kautz <uk@fortrabbit.de>
+    * Added the capability of printing SQL CREATE syntax via M::D::Core::DatabaseCreate module (server.pl .. --print-sql)
+    * Updated Moduel documentation with correct SQL syntax
+    * Updated tables.sql with current SQL (debian package)
+    * empty FROM is now allowed (bounce..)
+    * Reduced module "version" from 0.77 to 0.74, cause this is debian stable.
+    * Updated some content filter documentations
+
 0.1.3 2010-06-25 Ulrich Kautz <uk@fortrabbit.de>
     * Tests fixed (28, 31, 45 and 67): skip if certain modules are not there
     * M::D::LogParser docu updated

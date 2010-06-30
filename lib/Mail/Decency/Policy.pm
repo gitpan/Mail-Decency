@@ -7,9 +7,11 @@ extends qw/
 with qw/
     Mail::Decency::Core::Stats
     Mail::Decency::Core::ExportImport
+    Mail::Decency::Core::DatabaseCreate
+    Mail::Decency::Core::Excludes
 /;
 
-use version 0.77; our $VERSION = qv( "v0.1.2" );
+use version 0.74; our $VERSION = qv( "v0.1.4" );
 
 use feature qw/ switch /;
 
@@ -104,6 +106,21 @@ Example:
         - Greylist: policy/greylist.yml
         - Throttle: policy/throttle.yml
     
+
+
+=head2 DATABASE
+
+SQL CREATE statements (SQLite) for the stats role:
+
+    -- TABLE: stats_contentfilter_performance (SQLITE):
+    CREATE TABLE STATS_CONTENTFILTER_PERFORMANCE (calls varchar(10), runtime real, period varchar(10), type varchar(32), start integer, module varchar(32), id INTEGER PRIMARY KEY);
+    
+    CREATE UNIQUE INDEX STATS_CONTENTFILTER_PERFORMANCE_MODULE_PERIOD_START_TYPE ON STATS_CONTENTFILTER_PERFORMANCE (module, period, start, type);
+    
+    -- TABLE: stats_contentfilter_response (SQLITE):
+    CREATE TABLE STATS_CONTENTFILTER_RESPONSE (period varchar(10), type varchar(32), start integer, module varchar(32), id INTEGER PRIMARY KEY);
+    
+    CREATE UNIQUE INDEX STATS_CONTENTFILTER_RESPONSE_MODULE_PERIOD_START_TYPE ON STATS_CONTENTFILTER_RESPONSE (module, period, start, type);
 
 
 =head1 CLASS ATTRIBUTES
@@ -222,10 +239,7 @@ Instance of L<Crypt::OpenSSL::RSA> representing the forward sign key
 has forward_sign_key_priv => ( is => 'rw', isa => 'Crypt::OpenSSL::RSA' );
 
 
-
-
 =head1 METHODS
-
 
 =head2 init
 
@@ -235,6 +249,9 @@ Loads policy modules, inits caches, inits databases ..
 
 sub init {
     my ( $self ) = @_;
+    
+    # init name
+    $self->name( "policy" );
     
     # mark es inited
     $self->{ inited } ++;
@@ -293,8 +310,6 @@ sub init {
         $policy_ref->{ $name } = $policy->config if $policy;
     }
     
-    # init stats
-    $self->stats_name( "Policy" );
     
     $self->logger->info( "  Setup done" );
     
@@ -341,6 +356,11 @@ sub get_handlers {
         
         # apply all policies
         foreach my $policy( @{ $self_weak->childs } ) {
+            
+            if ( $self->has_exclusions && $self->do_exclude( $policy ) ) {
+                $self->logger->debug2( "Exclude $policy" );
+                next;
+            }
             
             # determine weight before, so we can increment stats
             my $weight_before  = $self->session_data->spam_score;
@@ -475,7 +495,9 @@ sub session_init {
     # create new session
     my $session = Mail::Decency::Core::SessionItem::Policy->new(
         id    => $attrs_ref->{ instance },
-        cache => $self->cache
+        cache => $self->cache,
+        from  => $attrs_ref->{ sender },
+        to    => $attrs_ref->{ recipient },
     );
     
     # add the sign key, if we can   

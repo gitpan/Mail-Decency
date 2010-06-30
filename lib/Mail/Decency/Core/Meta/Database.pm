@@ -2,7 +2,7 @@ package Mail::Decency::Core::Meta::Database;
 
 use Moose::Role;
 
-use version 0.77; our $VERSION = qv( "v0.1.0" );
+use version 0.74; our $VERSION = qv( "v0.1.4" );
 
 =head1 NAME
 
@@ -14,12 +14,6 @@ Abstract base class for all modules requiring databases
 
 
 =head1 CLASS ATTRIBUTES
-
-=head2 schema_definition HashRef[ArrayRef[Str]]
-
-Hashref of { schema => [ qw/ table1 table2 / ] }
-
-=cut
 
 
 =head1 METHODS
@@ -42,10 +36,12 @@ sub check_database {
             unless ( $self->database->ping( $schema => $table ) ) {
                 
                 # don't create, die with create syntax error
-                $self->database->setup( $schema => $table => $columns_ref );
+                return 0 unless $self->database->setup( $schema => $table => $columns_ref );
             }
         }
     }
+    
+    return 1;
 }
 
 =head1 AUTHOR

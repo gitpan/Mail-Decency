@@ -2,7 +2,7 @@ package Mail::Decency::Helper::Cache;
 
 use Moose;
 
-use version 0.77; our $VERSION = qv( "v0.1.0" );
+use version 0.74; our $VERSION = qv( "v0.1.4" );
 
 use Digest::MD5 qw/ md5_hex /;
 use Data::Dumper;

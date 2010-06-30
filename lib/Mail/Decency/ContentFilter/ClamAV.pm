@@ -3,7 +3,7 @@ package Mail::Decency::ContentFilter::ClamAV;
 use Moose;
 extends 'Mail::Decency::ContentFilter::Core', 'Mail::Decency::ContentFilter::Core::Virus';
 
-use version 0.77; our $VERSION = qv( "v0.1.0" );
+use version 0.74; our $VERSION = qv( "v0.1.4" );
 
 use mro 'c3';
 use Data::Dumper;

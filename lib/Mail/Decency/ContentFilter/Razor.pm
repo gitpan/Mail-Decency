@@ -6,7 +6,7 @@ extends qw/
     Mail::Decency::ContentFilter::Core::Spam
 /;
 
-use version 0.77; our $VERSION = qv( "v0.1.0" );
+use version 0.74; our $VERSION = qv( "v0.1.4" );
 
 use mro 'c3';
 use Data::Dumper;
@@ -28,8 +28,6 @@ Checks mails against the razor network.
     #timeout: 30
     
     #cmd_check: '/usr/bin/razor-check %file%'
-    #cmd_learn_spam: '/usr/bin/razor-report %file%'
-    #cmd_unlearn_spam: '/usr/bin/razor-revoke %file%'
     
     # weight for known innocent (good) mails
     weight_innocent: 10
@@ -49,20 +47,32 @@ has cmd_check => (
     default => '/usr/bin/razor-check %file%'
 );
 
-has cmd_learn_spam => (
-    is      => 'rw',
-    isa     => 'Str',
-    default => '/usr/bin/razor-report %file%'
-);
+# has cmd_learn_spam => (
+#     is      => 'rw',
+#     isa     => 'Str',
+#     default => '/usr/bin/razor-report %file%'
+# );
 
-has cmd_unlearn_spam => (
-    is      => 'rw',
-    isa     => 'Str',
-    default => '/usr/bin/razor-revoke %file%'
-);
+# has cmd_unlearn_spam => (
+#     is      => 'rw',
+#     isa     => 'Str',
+#     default => '/usr/bin/razor-revoke %file%'
+# );
 
 
 =head1 METHODS
+
+=head2 init
+
+=cut
+
+sub init {
+    my ( $self ) = @_;
+    
+    $self->next::method();
+    
+    $self->config->{ disable_train } = 1;
+}
 
 
 =head2 handle_filter_result

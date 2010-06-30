@@ -7,7 +7,7 @@ extends qw/
     Mail::Decency::ContentFilter::Core::WeightTranslate
 /;
 
-use version 0.77; our $VERSION = qv( "v0.1.0" );
+use version 0.74; our $VERSION = qv( "v0.1.4" );
 
 use mro 'c3';
 use Data::Dumper;
@@ -23,7 +23,6 @@ Filter messages through bogofilter and translate results
 
 =head2 CONFIG
 
-
     ---
     
     disable: 0
@@ -38,7 +37,6 @@ Filter messages through bogofilter and translate results
     
     default_user: '/etc/bogofilter.cf'
     
-
 
 =cut
 

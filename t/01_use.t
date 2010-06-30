@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-use Test::More tests => 42;
+use Test::More tests => 43;
 
 BEGIN {
     ok( eval "use v5.10; 1", "Perl 5.10" ) or die "Perl 5.10 required";
@@ -34,11 +34,12 @@ BEGIN {
     use_ok( 'Net::SMTP' ) or die;
     use_ok( 'POE' ) or die;
     use_ok( 'POE::Filter::Postfix::Plain' ) or die;
+    use_ok( 'POE::Wheel::FollowTail' ) or die;
     use_ok( 'POE::Wheel::ReadWrite' ) or die;
     use_ok( 'POE::Wheel::SocketFactory' ) or die;
     use_ok( 'SQL::Abstract' ) or die;
     use_ok( 'Throwable' ) or die;
-    use_ok( 'version', '0.77' ) or die;
+    use_ok( 'version', '0.74' ) or die;
     use_ok( 'YAML' ) or die;
     
     use_ok( 'Mail::Decency::Policy' ) or die;

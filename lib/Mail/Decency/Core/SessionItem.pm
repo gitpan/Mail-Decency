@@ -2,7 +2,7 @@ package Mail::Decency::Core::SessionItem;
 
 use Moose;
 
-use version 0.77; our $VERSION = qv( "v0.1.0" );
+use version 0.74; our $VERSION = qv( "v0.1.4" );
 
 =head1 NAME
 
@@ -55,7 +55,63 @@ Accessor to the parentl cache
 
 has cache => ( is => 'rw', isa => 'Mail::Decency::Helper::Cache', required => 1, weak_ref => 1 );
 
+=head2 from
 
+Sender of the current mail
+
+=cut
+
+has from => ( is => 'rw', isa => "Str", trigger => sub {
+    my ( $self, $from ) = @_;
+    my ( $prefix, $domain ) = split( /\@/, $from || "" );
+    $self->from_prefix( $prefix || "" ) if $prefix;
+    $self->from_domain( $domain || "" ) if $domain;
+} );
+
+=head2 from_prefix
+
+The prefix part of the mail FROM
+
+=cut
+
+has from_prefix => ( is => 'rw', isa => "Str" );
+
+=head2 from_domain
+
+The domain part of the mail FROM
+
+=cut
+
+has from_domain => ( is => 'rw', isa => "Str" );
+
+=head2 to
+
+Recipient of the current mail
+
+=cut
+
+has to => ( is => 'rw', isa => "Str", trigger => sub {
+    my ( $self, $to ) = @_;
+    my ( $prefix, $domain ) = split( /\@/, $to || "" );
+    $self->to_prefix( $prefix || "" ) if $prefix;
+    $self->to_domain( $domain || "" ) if $domain;
+} );
+
+=head2 to_prefix
+
+The prefix part ot the RCPT TO
+
+=cut
+
+has to_prefix => ( is => 'rw', isa => "Str" );
+
+=head2 to_domain
+
+The domain part ot the RCPT TO
+
+=cut
+
+has to_domain => ( is => 'rw', isa => "Str" );
 
 =head1 METHODS
 

@@ -6,7 +6,7 @@ extends qw/
     Mail::Decency::ContentFilter::Core::Spam
 /;
 
-use version 0.77; our $VERSION = qv( "v0.1.0" );
+use version 0.74; our $VERSION = qv( "v0.1.4" );
 
 use mro 'c3';
 
@@ -81,10 +81,10 @@ has sign_method    => ( is => 'rw', isa => 'Str', default => 'relaxed' );
 
 # verification
 has enable_verify    => ( is => 'rw', isa => 'Bool', default => 0 );
-has weight_pass      => ( is => 'rw', isa => 'Int', default => 25 );
-has weight_fail      => ( is => 'rw', isa => 'Int', default => -75 );
-has weight_invalid   => ( is => 'rw', isa => 'Int', default => -50 );
-has weight_temperror => ( is => 'rw', isa => 'Int', default => -10 );
+has weight_pass      => ( is => 'rw', isa => 'Int', default => 15 );
+has weight_fail      => ( is => 'rw', isa => 'Int', default => -50 );
+has weight_invalid   => ( is => 'rw', isa => 'Int', default => -25 );
+has weight_temperror => ( is => 'rw', isa => 'Int', default => 0 );
 has weight_none      => ( is => 'rw', isa => 'Int', default => 0 );
 
 

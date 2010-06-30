@@ -4,7 +4,7 @@ package Mail::Decency::Core::Server;
 use Moose;
 extends 'Mail::Decency::Core::Meta';
 
-use version 0.77; our $VERSION = qv( "v0.1.0" );
+use version 0.74; our $VERSION = qv( "v0.1.4" );
 
 use Data::Dumper;
 use Scalar::Util qw/ weaken blessed /;
@@ -266,11 +266,14 @@ sub gen_child {
         );
         
         # check database, if can .. don't start with corrupted !
-        if ( $obj->can( 'check_database' ) ) {
-            $obj->check_database( $obj->schema_definition );
+        if ( $obj->can( 'check_database' ) && ! $ENV{ NO_CHECK_DATABASE } ) {
+            ( my $db_class = ref( $self->database ) ) =~ s/^.+:://;
+            $obj->check_database( $obj->schema_definition )
+                or die "Please create the database yourself (class: $db_class)\n";
         }
         
     };
+    
     die "Error creating $name: $@\n" if $@;
     
     # add to meta list of childs
@@ -316,7 +319,6 @@ sub disable_logging {
         $child->database->logger->disabled( 1 );
     }
 }
-
 
 
 =head1 AUTHOR

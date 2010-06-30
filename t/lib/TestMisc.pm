@@ -126,9 +126,9 @@ sub create_server {
             for keys %$config_modi_ref;
     }
     
-    my $policy = $class->new( config => $config_ref, config_dir => "$Bin/conf" );
+    my $server = $class->new( config => $config_ref, config_dir => "$Bin/conf" );
     
-    return $policy;
+    return $server;
 }
 
 

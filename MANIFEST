@@ -20,7 +20,9 @@ lib/Mail/Decency/ContentFilter/MimeAttribs.pm
 lib/Mail/Decency/ContentFilter/Razor.pm
 lib/Mail/Decency/ContentFilter/SpamAssassin.pm
 lib/Mail/Decency/Core/Child.pm
+lib/Mail/Decency/Core/DatabaseCreate.pm
 lib/Mail/Decency/Core/Exception.pm
+lib/Mail/Decency/Core/Excludes.pm
 lib/Mail/Decency/Core/ExportImport.pm
 lib/Mail/Decency/Core/Meta.pm
 lib/Mail/Decency/Core/Meta/Database.pm
@@ -88,6 +90,7 @@ t/60_lp-core.t
 t/65_lp-stats.t
 t/66_lp-aggregator.t
 t/67_lp-geo-source.t
+t/80_exclusions.t
 t/conf/cache.yml
 t/conf/content-filter.yml
 t/conf/content-filter/bogofilter.yml
@@ -101,6 +104,8 @@ t/conf/content-filter/mime-attribs.yml
 t/conf/content-filter/razor.yml
 t/conf/database.yml
 t/conf/defaults.yml
+t/conf/exclusions.txt
+t/conf/exclusions.yml
 t/conf/log-parser.yml
 t/conf/log-parser/aggregator.yml
 t/conf/log-parser/geo-source.yml

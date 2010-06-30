@@ -7,7 +7,7 @@ extends qw/
     Mail::Decency::ContentFilter::Core::WeightTranslate
 /;
 
-use version 0.77; our $VERSION = qv( "v0.1.0" );
+use version 0.74; our $VERSION = qv( "v0.1.4" );
 
 use mro 'c3';
 use Data::Dumper;
@@ -19,7 +19,7 @@ Mail::Decency::ContentFilter::CRM114
 
 =head1 DESCRIPTION
 
-Filters messages trouigh crm114
+Filters messages trough crm114 discriminator.
 
 =head2 CONFIG
 

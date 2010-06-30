@@ -4,7 +4,7 @@ use Moose;
 extends 'Mail::Decency::Helper::Database';
 use mro 'c3';
 
-use version 0.77; our $VERSION = qv( "v0.1.0" );
+use version 0.74; our $VERSION = qv( "v0.1.4" );
 
 
 use Data::Dumper;
@@ -278,8 +278,11 @@ sub setup {
             ];
         }
         else {
-            my $type = ref( $ref )
-                ? "$ref->[0]($ref->[1])"
+            my $type = ref( $ref ) eq 'ARRAY'
+                ? ( $#$ref == 0
+                    ? $ref->[0]
+                    : "$ref->[0]($ref->[1])"
+                )
                 : $ref
             ;
             push @columns, "$name $type";
@@ -301,17 +304,17 @@ sub setup {
         for @uniques;
     
     unless ( $execute ) {
-        die join( "\n",
-            "-- Create table syntax for ${schema}_${table} looks like:",
-            "-- *********",
-            join( ";\n\n", @stm ),
-            "-- *********"
-        ). "\n";
+        print join( "\n",
+            "-- TABLE: ${schema}_${table} (SQLITE):",
+            join( ";\n", @stm ),
+        ). ";\n";
+        return 0;
     }
     else {
         foreach my $stm( @stm ) {
             $self->db->dbh->do( $stm );
         }
+        return 1;
     }
 }
 

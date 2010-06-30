@@ -2,7 +2,7 @@ package Mail::Decency::Core::Stats;
 
 use Moose::Role;
 
-use version 0.77; our $VERSION = qv( "v0.1.0" );
+use version 0.74; our $VERSION = qv( "v0.1.4" );
 
 use Data::Dumper;
 use DateTime;
@@ -25,7 +25,6 @@ Wheter enable stats or not
 
 has enable_stats => ( is => 'rw', isa => 'Bool', default => 0 );
 
-has stats_name      => ( is => 'rw', isa => 'Str' );
 has stats_intervals => ( is => 'rw', isa => 'ArrayRef[Str]', default => sub {
     [
         'hour',
@@ -49,18 +48,21 @@ Update schema definition of this module
 
 =cut
 
-before 'init' => sub {
+after 'init' => sub {
     my ( $self ) = @_;
+    
+    my $prefix = $self->name;
+    
     $self->{ schema_definition } ||= {};
     $self->{ schema_definition }->{ stats } = {
-        lc( $self->stats_name ). "_response" => {
+        $self->name. "_response" => {
             module  => [ varchar => 32 ],
             period  => [ varchar => 10 ],
             start   => 'integer',
             type    => [ varchar => 32 ],
             -unique => [ qw/ module period start type / ]
         },
-        lc( $self->stats_name ). "_performance" => {
+        $self->name. "_performance" => {
             module  => [ varchar => 32 ],
             type    => [ varchar => 32 ],
             period  => [ varchar => 10 ],
@@ -81,7 +83,7 @@ before 'init' => sub {
 
 before 'maintenance' => sub {
     my ( $self ) = @_;
-    my $table = lc( $self->stats_name );
+    my $table = lc( $self->name );
     
     my $now = DateTime->now( time_zone => $self->stats_time_zone );
     my @intervals = map {
@@ -135,7 +137,7 @@ sub update_stats {
     
     eval {
         
-        my $table = lc( $self->stats_name );
+        my $table = lc( $self->name );
         foreach my $interval_ref( @intervals ) {
             my %search = (
                 module => "$module",
@@ -178,7 +180,7 @@ Print out stats
 sub print_stats {
     my ( $self, $return ) = @_;
     
-    my $table = lc( $self->stats_name );
+    my $table = lc( $self->name );
     
     my $now = DateTime->now( time_zone => $self->stats_time_zone );
     my @intervals = map {
@@ -224,6 +226,7 @@ sub print_stats {
             } );
             
             foreach my $response_ref( @response ) {
+                next unless $response_ref->{ type };
                 $stats_response{ $response_ref->{ type } } ||= {};
                 $stats_response{ $response_ref->{ type } }->{ $module } ||= {};
                 $stats_response{ $response_ref->{ type } }->{ $module }->{ $period }

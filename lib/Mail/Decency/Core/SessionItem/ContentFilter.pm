@@ -5,7 +5,7 @@ extends qw/
     Mail::Decency::Core::SessionItem
 /;
 
-use version 0.77; our $VERSION = qv( "v0.1.0" );
+use version 0.74; our $VERSION = qv( "v0.1.4" );
 
 use MIME::Parser;
 use IO::File;
@@ -45,22 +45,6 @@ Size of the current file (id)
 =cut
 
 has file_size => ( is => 'rw', isa => "Int", default => 0 );
-
-=head2 from
-
-Sender of the current mail
-
-=cut
-
-has from => ( is => 'rw', isa => "Str" );
-
-=head2 to
-
-Recipient of the current mail
-
-=cut
-
-has to => ( is => 'rw', isa => "Str" );
 
 =head2 virus
 
@@ -385,8 +369,6 @@ sub retreive_policy_scoring {
         $self->write_mime();
     }
 }
-
-
 
 =pod
 

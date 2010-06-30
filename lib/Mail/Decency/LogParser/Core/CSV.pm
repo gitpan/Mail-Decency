@@ -2,7 +2,7 @@ package Mail::Decency::LogParser::Core::CSV;
 
 use Moose::Role;
 
-use version 0.77; our $VERSION = qv( "v0.1.0" );
+use version 0.74; our $VERSION = qv( "v0.1.4" );
 
 use Data::Dumper;
 use File::Basename qw/ dirname /;

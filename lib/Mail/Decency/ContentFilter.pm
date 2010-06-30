@@ -7,9 +7,11 @@ extends qw/
 
 with qw/
     Mail::Decency::Core::Stats
+    Mail::Decency::Core::DatabaseCreate
+    Mail::Decency::Core::Excludes
 /;
 
-use version 0.77; our $VERSION = qv( "v0.1.2" );
+use version 0.74; our $VERSION = qv( "v0.1.4" );
 
 use feature qw/ switch /;
 
@@ -53,7 +55,7 @@ Postfix:Decency::ContentFilter implements multiple content filter
 
 =head1 POSTFIX
 
-You have to edit two files: master.cf and main.cf in /etc/postfix 
+You have to edit two files: master.cf and main.cf in /etc/postfix
 
 
 =head2 master.cf
@@ -476,6 +478,9 @@ Init cache, database, logger, dirs and content filter
 
 sub init {
     my ( $self ) = @_;
+    
+    # init name
+    $self->name( "contentfilter" );
     
     # mark es inited
     $self->{ inited } ++;
@@ -945,6 +950,11 @@ sub handle {
     foreach my $filter( @{ $self->childs } ) {
         $self->logger->debug3( "Handle to '$filter'" );
         
+        if ( $self->has_exclusions && $self->do_exclude( $filter ) ) {
+            $self->logger->debug2( "Exclude $filter" );
+            next;
+        }
+        
         # determine weight before, so we can increment stats
         my $weight_before  = $self->session_data->spam_score;
         my $start_time_ref = [ gettimeofday() ];
@@ -1046,7 +1056,11 @@ sub handle {
     
     # having finish hooks ?
     foreach my $filter( @{ $self->childs } ) {
-        next unless $filter->can( 'hook_pre_finish' );
+        if ( ! $filter->can( 'hook_pre_finish' ) || ( $self->has_exclusions && $self->do_exclude( $filter ) ) ) {
+            $self->logger->debug2( "Exclude $filter" );
+            next;
+        }
+        
         eval {
             ( $status, $final_code ) = $filter->hook_pre_finish( $status );
         };
@@ -1070,7 +1084,10 @@ sub handle {
     
     # having after-finish hooks ?
     foreach my $filter( @{ $self->childs } ) {
-        next unless $filter->can( 'hook_post_finish' );
+        if ( ! $filter->can( 'hook_post_finish' ) || ( $self->has_exclusions && $self->do_exclude( $filter ) ) ) {
+            $self->logger->debug2( "Exclude $filter" );
+            next;
+        }
         eval {
             ( $status, $final_code ) = $filter->hook_post_finish( $status );
         };

@@ -4,7 +4,7 @@ use Moose;
 extends 'Mail::Decency::Helper::Database';
 use mro 'c3';
 
-use version 0.77; our $VERSION = qv( "v0.1.1" );
+use version 0.74; our $VERSION = qv( "v0.1.4" );
 
 use Data::Dumper;
 use Tie::IxHash;
@@ -205,8 +205,10 @@ sub ping {
     eval {
         my $col = $self->db->get_collection( "${schema}_${table}" );
     };
+    $self->logger->debug0( "Collection '${$schema}_${table}' not existing, yet.. no harm, should be created automatically. Response: $@" )
+        if $@;
     
-    return ! $@;
+    return 1;
 }
 
 
@@ -221,15 +223,23 @@ setup indices
 sub setup {
     my ( $self, $schema, $table, $columns_ref, $execute ) = @_;
     
-    if ( defined $columns_ref->{ -unique } ) {
-        my $unique = Tie::IxHash->new( map { ( $_ => 1 ) } @{ $columns_ref->{ -unique } } );
-        $self->db->get_collection( "${schema}_${table}" )->ensure_index( $unique, { unique => 1 } );
+    if ( $execute ) {
+        if ( defined $columns_ref->{ -unique } ) {
+            my $unique = Tie::IxHash->new( map { ( $_ => 1 ) } @{ $columns_ref->{ -unique } } );
+            $self->db->get_collection( "${schema}_${table}" )->ensure_index( $unique, { unique => 1 } );
+        }
+        
+        if ( defined $columns_ref->{ -index } ) {
+            my $idx = Tie::IxHash->new( map { ( $_ => 1 ) } @{ $columns_ref->{ -index } } );
+            $self->db->get_collection( "${schema}_${table}" )->ensure_index( $idx );
+        }
     }
     
-    if ( defined $columns_ref->{ -index } ) {
-        my $idx = Tie::IxHash->new( map { ( $_ => 1 ) } @{ $columns_ref->{ -index } } );
-        $self->db->get_collection( "${schema}_${table}" )->ensure_index( $idx );
+    else {
+        print "-- MongoDB does no require create statements\n";
     }
+    
+    return 1;
 }
 
 

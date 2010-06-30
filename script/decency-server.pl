@@ -4,6 +4,8 @@
 use strict;
 use warnings;
 
+use version 0.74; our $VERSION = qv( "v0.1.4" );
+
 use YAML;
 use Getopt::Long;
 use File::Basename qw/ dirname /;
@@ -28,6 +30,7 @@ GetOptions(
     "help|h"         => \( $opt{ help } = 0 ),
     "maintenance"    => \( $opt{ maintenance } = 0 ),
     "print-stats"    => \( $opt{ print_stats } = 0 ),
+    "print-sql"      => \( $opt{ print_sql } = 0 ),
     "export=s"       => \( $opt{ export } = "" ),
     "import=s"       => \( $opt{ import } = "" ),
     "import-replace" => \( $opt{ import_replace } = "" ),
@@ -78,6 +81,9 @@ Usage: $0 --class <classname> --config <configfile> --pidfile <pidfile>
     
     --print-stats
         Print statistics and exit
+    
+    --print-sql
+        Print SQL "CREATE *" statements in SQLite syntax
     
     --export <path>
         Exports all stored data in either a gziped tararchive or
@@ -159,11 +165,15 @@ $config->{ server }->{ host } = $opt{ host }
 # create server
 my $dir = dirname( $opt{ config } );
 
+
+$ENV{ NO_CHECK_DATABASE } = 1
+    if $opt{ print_sql };
+
 my $server = $class->new( config => $config, config_dir => $dir );
 
 
 # perform maintenance
-if ( $opt{ maintenance } || $opt{ print_stats } || $opt{ export } || $opt{ import } ) {
+if ( $opt{ maintenance } || $opt{ print_stats } || $opt{ print_sql } || $opt{ export } || $opt{ import } ) {
     $server->disable_logging;
     
     if ( $opt{ maintenance } ) {
@@ -173,6 +183,11 @@ if ( $opt{ maintenance } || $opt{ print_stats } || $opt{ export } || $opt{ impor
     # print out statistics
     elsif ( $opt{ print_stats } ) {
         $server->print_stats;
+    }
+    
+    # print out statistics
+    elsif ( $opt{ print_sql } ) {
+        $server->print_sql;
     }
     
     # export database to file or STDOUT

@@ -3,7 +3,7 @@ package Mail::Decency::Core::POEForking::SMTP;
 use strict;
 use warnings;
 
-use version 0.77; our $VERSION = qv( "v0.1.0" );
+use version 0.74; our $VERSION = qv( "v0.1.4" );
 
 use feature 'switch';
 
@@ -171,10 +171,12 @@ sub smtp_input {
     # not in DATA -> catch SMTP commands
     else {
         
+        warn "> $cmd | $arg\n" if $ENV{ DEBUG_SMTP }; 
+        
         # MAIL FROM commmand -> rewrite for handling
         if ( $cmd eq 'MAIL' && $arg =~ /^FROM:\s*(?:<([^>]*?)>|(.*?))\s*$/ ) {
             $cmd = 'MAIL_FROM';
-            $heap->{ mail_from } = $arg = $1 || $2;
+            $heap->{ mail_from } = $arg = $1 || $2 || "";
         }
         
         # RCPT TO commmand -> rewrite for handling
@@ -187,12 +189,13 @@ sub smtp_input {
         elsif ( $cmd eq 'DATA' ) {
             
             # not heaving from and to ? not good -> bye to client
-            unless ( $heap->{ mail_from } && $heap->{ rcpt_to } ) {
+            unless ( $heap->{ rcpt_to } ) {
+                
                 # clear heap
-                delete $heap->{ $_ } for qw/ mail_from rcpt_to /;
+                delete $heap->{ $_ } for qw/ mail_from /;
                 
                 # send bye, close client
-                ( delete $heap->{ client } )->put( 221 => 'Require RCPT TO, MAIL FROM' );
+                ( $heap->{ client } )->put( 221 => 'Require RCPT TO' );
                 
                 return;
             }
@@ -303,6 +306,7 @@ sub smtp_error {
     eval {
         #delete $heap->{ $_ } for qw/ client socket /; #
         $heap->{ socket }->flush;
+        delete $heap->{ client };
     };
     $heap->{ decency }->logger->error( "Could not remove client from list after weird disconnect: $@" )
         if $@;
