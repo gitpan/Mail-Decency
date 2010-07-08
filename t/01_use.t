@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-use Test::More tests => 43;
+use Test::More tests => 45;
 
 BEGIN {
     ok( eval "use v5.10; 1", "Perl 5.10" ) or die "Perl 5.10 required";
@@ -12,6 +12,7 @@ BEGIN {
     use_ok( 'DBD::SQLite' ) or die;
     use_ok( 'DBI' ) or die;
     use_ok( 'DBIx::Connector' ) or die;
+    use_ok( 'Email::Valid' ) or die;
     use_ok( 'Getopt::Long' ) or die;
     use_ok( 'Geo::IP' ) or die;
     use_ok( 'IO::File' ) or die;
@@ -37,6 +38,7 @@ BEGIN {
     use_ok( 'POE::Wheel::FollowTail' ) or die;
     use_ok( 'POE::Wheel::ReadWrite' ) or die;
     use_ok( 'POE::Wheel::SocketFactory' ) or die;
+    use_ok( 'Regexp::Common' ) or die;
     use_ok( 'SQL::Abstract' ) or die;
     use_ok( 'Throwable' ) or die;
     use_ok( 'version', '0.74' ) or die;

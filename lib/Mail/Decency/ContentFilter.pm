@@ -11,7 +11,7 @@ with qw/
     Mail::Decency::Core::Excludes
 /;
 
-use version 0.74; our $VERSION = qv( "v0.1.4" );
+use version 0.74; our $VERSION = qv( "v0.1.5" );
 
 use feature qw/ switch /;
 
@@ -831,7 +831,12 @@ sub train {
             ( my $target = $file ) =~ s#^.*\/##;
             $file = abs_path( $file );
             $target = abs_path( "$args_ref->{ move }/$target" );
-            move( $file, $target );
+            $target =~ s/[^0-9a-zA-Z\-_\.\/]/-/g;
+            $target =~ s/\-\-+/-/g;
+            $target =~ s/\-+$//;
+            $target =~ s/^\-+//;
+            move( $file, $target )
+                or die "Move error: $!\n";
             die "Oops, cannot move '$file' -> '$target'\n" unless -f $target;
         }
         elsif ( $args_ref->{ remove } ) {

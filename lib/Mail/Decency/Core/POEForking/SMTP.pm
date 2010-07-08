@@ -3,7 +3,7 @@ package Mail::Decency::Core::POEForking::SMTP;
 use strict;
 use warnings;
 
-use version 0.74; our $VERSION = qv( "v0.1.4" );
+use version 0.74; our $VERSION = qv( "v0.1.5" );
 
 use feature 'switch';
 
@@ -97,18 +97,6 @@ sub smtp_start {
 }
 
 
-=head2 smtp_stop
-
-Stop connection, good bye
-
-=cut
-
-sub smtp_stop {
-    my ( $heap, $session ) = @_[ HEAP, SESSION ];
-    delete $heap->{ client } if $heap->{ client };
-}
-
-
 =head2 smtp_input
 
 Handling input
@@ -195,7 +183,7 @@ sub smtp_input {
                 delete $heap->{ $_ } for qw/ mail_from /;
                 
                 # send bye, close client
-                ( $heap->{ client } )->put( 221 => 'Require RCPT TO' );
+                $heap->{ client }->put( 221 => 'Require RCPT TO' );
                 
                 return;
             }
@@ -220,6 +208,25 @@ sub smtp_input {
         
         smtp_response( $heap, $session, $cmd, $line );
     }
+}
+
+
+=head2 smtp_stop
+
+Stop connection, good bye
+
+=cut
+
+sub smtp_stop {
+    my ( $heap, $session ) = @_[ HEAP, SESSION ];
+    
+    $heap->{ logger }->debug2( "Disconnecting from postfix" );
+    eval {
+        delete $heap->{ $_ } for qw/ client socket /;
+    };
+    $heap->{ logger }->error( "Could not remove client from list after postfix stop: $@" )
+        if $@;
+    #delete $heap->{ client } if $heap->{ client };
 }
 
 
@@ -272,12 +279,11 @@ sub smtp_flush {
     
     if ( delete $heap->{ finished } && $heap->{ client } ) {
         $heap->{ decency }->logger->debug2( "Got final flush from postfix. Delete client connection." );
-        delete $heap->{ client };
-        eval {
-            $heap->{ socket }->flush;
-        };
-        $heap->{ decency }->logger->error( "Could not remove client from list after final flush: $@" )
-            if $@;
+        eval { delete $heap->{ client }; };
+        $heap->{ decency }->logger->error( "Could not remove client from list after final flush: $@" ) if $@;
+        
+        # eval { $heap->{ socket }->flush; };
+        # $heap->{ decency }->logger->error( "Could not flush socket after client removal: $@" ) if $@;
     }
 }
 
@@ -306,7 +312,7 @@ sub smtp_error {
     eval {
         #delete $heap->{ $_ } for qw/ client socket /; #
         $heap->{ socket }->flush;
-        delete $heap->{ client };
+        #delete $heap->{ client };
     };
     $heap->{ decency }->logger->error( "Could not remove client from list after weird disconnect: $@" )
         if $@;

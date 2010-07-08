@@ -3,7 +3,7 @@ package Mail::Decency::Core::POEForking::Postfix;
 use strict;
 use warnings;
 
-use version 0.74; our $VERSION = qv( "v0.1.4" );
+use version 0.74; our $VERSION = qv( "v0.1.5" );
 
 use base qw/
     Mail::Decency::Core::POEForking
@@ -103,21 +103,6 @@ sub postfix_input {
 }
 
 
-=head2 postfix_flush
-
-Flush connection .. ignore this
-
-=cut
-
-sub postfix_flush {
-    my ( $heap, $session ) = @_[ HEAP, SESSION ];
-    $heap->{ logger }->debug3( "Flush from $heap->{ peer_addr } (". $session->ID. ")" );
-    eval {
-        delete $heap->{ $_ } for qw/ client /;
-    };
-}
-
-
 =head2 postfix_stop
 
 Stop connection.. called when WE finish the connection (eg SIG TERM)
@@ -135,6 +120,21 @@ sub postfix_stop {
         if $@;
     
     return;
+}
+
+
+=head2 postfix_flush
+
+Flush connection .. ignore this
+
+=cut
+
+sub postfix_flush {
+    my ( $heap, $session ) = @_[ HEAP, SESSION ];
+    $heap->{ logger }->debug3( "Flush from $heap->{ peer_addr } (". $session->ID. ")" );
+    eval {
+        delete $heap->{ $_ } for qw/ client /;
+    };
 }
 
 

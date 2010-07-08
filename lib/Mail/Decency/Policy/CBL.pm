@@ -14,21 +14,6 @@ use Data::Dumper;
 Mail::Decency::Policy::CWL
 
 
-=head1 CONFIG
-
-    ---
-    
-    disable: 0
-    
-    # enable negative cache
-    use_negative_cache: 1
-    
-    # enable all tables
-    tables:
-        - ips
-        - domains
-        - addresses
-    
 
 =head1 DESCRIPTION
 
@@ -42,12 +27,6 @@ Implementation of a custom whitelist based on sending server (ip/hostname), send
     
     # enable negative cache (non-hits)
     use_negative_cache: 1
-    
-    # use special database for this
-    database:
-        type: berkeley
-        hash: /etc/decency/databases/cbl/db
-        root_dir: /etc/decency/databases/cbl/env
     
     # enable all tables
     tables:

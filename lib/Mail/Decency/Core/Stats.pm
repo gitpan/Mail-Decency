@@ -2,7 +2,7 @@ package Mail::Decency::Core::Stats;
 
 use Moose::Role;
 
-use version 0.74; our $VERSION = qv( "v0.1.4" );
+use version 0.74; our $VERSION = qv( "v0.1.5" );
 
 use Data::Dumper;
 use DateTime;
@@ -78,6 +78,8 @@ after 'init' => sub {
 };
 
 =head2 maintenance
+
+Clears all entries which are older then the current interval. For hour, that would mean any hourly stats before the current hour, for year that would mean any stat from the last year and so on..
 
 =cut
 
@@ -355,6 +357,7 @@ sub print_stats {
     #print Dumper( { weight => \%stats_weight, response => \%stats_response, out => \@out } );
     
 }
+
 
 
 =head1 AUTHOR

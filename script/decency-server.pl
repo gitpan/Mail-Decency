@@ -4,7 +4,7 @@
 use strict;
 use warnings;
 
-use version 0.74; our $VERSION = qv( "v0.1.4" );
+use version 0.74; our $VERSION = qv( "v0.1.5" );
 
 use YAML;
 use Getopt::Long;
@@ -48,16 +48,16 @@ Usage: $0 --class <classname> --config <configfile> --pidfile <pidfile>
 
     --class | -a <policy|content-filter|syslog-parser>
         What kind of server to start ?
-            Mail::Decency::Policy
-            Mail::Decency::ContentFilter
-            Mail::Decency::SyslogParser
+            policy = Mail::Decency::Policy
+            content-filter = Mail::Decency::ContentFilter
+            log-parser = Mail::Decency::LogParser
     
     --config | -c <file>
         Path to config .. 
         default: /etc/decency/<class>.yml
     
     --pid-file | -p <file>
-        default: no pid file
+        default: /tmp/<class>.pid
     
     --log-level | -l <1..6>
         the smaller the less verbose and vice versa, overwrite settings
@@ -93,7 +93,7 @@ Usage: $0 --class <classname> --config <configfile> --pidfile <pidfile>
         Imports exported databases back to decency.
     
     --import-replace
-        Perfromces a replacive import which will remove all existing data
+        Performces a replacive import which will remove all existing data
         before. Default is additive.
     
     --train-(spam|ham) <files>

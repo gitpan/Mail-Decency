@@ -5,7 +5,7 @@ extends qw/
     Mail::Decency::Policy::Core
 /;
 
-use version 0.74; our $VERSION = qv( "v0.1.4" );
+use version 0.74; our $VERSION = qv( "v0.1.5" );
 
 use Mail::Decency::Helper::IP qw/ is_local_host /;
 use Net::DNS;
@@ -191,6 +191,9 @@ sub handle {
     
     # don bother with loopback addresses! EVEN IF ENABLED BY FORCE!
     return if is_local_host( $attrs_ref->{ client_address } );
+    
+    # if spf module is used and passes -> no need to verify this again
+    return if $self->session_data->has_flag( 'spf_pass' );
     
     #
     # CACHES

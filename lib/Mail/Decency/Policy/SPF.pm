@@ -253,6 +253,13 @@ sub check_spf {
             # parse headers, if any
             ( my $header = $res->received_spf_header || "" ) =~ s/^Received-SPF: //;
             
+            if ( $code eq 'passed' ) {
+                $self->session_data->set_flag( 'spf_pass' );
+            }
+            elsif ( $code ne 'none' ) {
+                $self->session_data->set_flag( 'spf_nopass' );
+            }
+            
             # return scoring result (throws final exception, if final)
             return $self->add_spam_score( $self->$weight_meth, join( "; ",
                 "SPF Result: $code",

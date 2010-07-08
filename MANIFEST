@@ -54,6 +54,7 @@ lib/Mail/Decency/LogParser/GeoSource.pm
 lib/Mail/Decency/LogParser/Stats.pm
 lib/Mail/Decency/Policy.pm
 lib/Mail/Decency/Policy/Association.pm
+lib/Mail/Decency/Policy/Basic.pm
 lib/Mail/Decency/Policy/CBL.pm
 lib/Mail/Decency/Policy/CWL.pm
 lib/Mail/Decency/Policy/Cookbook.pm
@@ -78,6 +79,7 @@ t/29_policy-honeypot.t
 t/30_policy-throttle.t
 t/31_policy-geo-weight.t
 t/32_policy-association.t
+t/33_policy-basic.t
 t/40_cf-core.t
 t/41_cf-mimeattribs.t
 t/42_cf-dspam.t
@@ -112,6 +114,7 @@ t/conf/log-parser/geo-source.yml
 t/conf/log-parser/stats.yml
 t/conf/policy.yml
 t/conf/policy/association.yml
+t/conf/policy/basic.yml
 t/conf/policy/cbl.yml
 t/conf/policy/cwl.yml
 t/conf/policy/dnsbl.yml
