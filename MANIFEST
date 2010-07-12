@@ -11,6 +11,7 @@ lib/Mail/Decency/ContentFilter/Core.pm
 lib/Mail/Decency/ContentFilter/Core/Cmd.pm
 lib/Mail/Decency/ContentFilter/Core/Constants.pm
 lib/Mail/Decency/ContentFilter/Core/Spam.pm
+lib/Mail/Decency/ContentFilter/Core/User.pm
 lib/Mail/Decency/ContentFilter/Core/Virus.pm
 lib/Mail/Decency/ContentFilter/Core/WeightTranslate.pm
 lib/Mail/Decency/ContentFilter/DKIM.pm
@@ -88,6 +89,7 @@ t/44_cf-crm114.t
 t/45_cf-clamav.t
 t/46_cf-razor.t
 t/47_cf-dkim.t
+t/48_cf-spamassassin.t
 t/60_lp-core.t
 t/65_lp-stats.t
 t/66_lp-aggregator.t
@@ -104,6 +106,7 @@ t/conf/content-filter/dkim.yml
 t/conf/content-filter/dspam.yml
 t/conf/content-filter/mime-attribs.yml
 t/conf/content-filter/razor.yml
+t/conf/content-filter/spamassassin.yml
 t/conf/database.yml
 t/conf/defaults.yml
 t/conf/exclusions.txt

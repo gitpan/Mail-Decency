@@ -2,12 +2,17 @@ package Mail::Decency::ContentFilter::Bogofilter;
 
 use Moose;
 extends qw/
-    Mail::Decency::ContentFilter::Core::Cmd
+    Mail::Decency::ContentFilter::Core
+/;
+
+with qw/
     Mail::Decency::ContentFilter::Core::Spam
+    Mail::Decency::ContentFilter::Core::Cmd
+    Mail::Decency::ContentFilter::Core::User
     Mail::Decency::ContentFilter::Core::WeightTranslate
 /;
 
-use version 0.74; our $VERSION = qv( "v0.1.4" );
+use version 0.74; our $VERSION = qv( "v0.1.6" );
 
 use mro 'c3';
 use Data::Dumper;

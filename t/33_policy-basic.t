@@ -101,7 +101,7 @@ TEST_HELO: {
     eval {
         $module->handle( undef, $attrs_ref );
     };
-    my @details = @{ $policy->session_data->spam_details };
+    @details = @{ $policy->session_data->spam_details };
     #print "HERE ". Dumper( [ $policy->session_data->spam_score, @details ] );
     ok( $policy->session_data->spam_score == -15
         && $details[0] eq 'Module: Test; Score: -5; Helo hostname is invalid'

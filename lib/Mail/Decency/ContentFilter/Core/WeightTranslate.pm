@@ -1,9 +1,9 @@
 package Mail::Decency::ContentFilter::Core::WeightTranslate;
 
-use Moose;
+use Moose::Role;
 use Data::Dumper;
 
-use version 0.74; our $VERSION = qv( "v0.1.4" );
+use version 0.74; our $VERSION = qv( "v0.1.6" );
 
 =head1 NAME
 
@@ -42,14 +42,10 @@ Add check params: cmd, check, train and untrain to list of check params
 
 =cut
 
-sub pre_init {
+before init => sub {
     my ( $self ) = @_;
-    
-    # init base, assure we get mime encoded
-    $self->maybe::next::method();
-    
     push @{ $self->{ config_params } ||=[] }, qw/ weight_translate /;
-}
+};
 
 
 =head2 translate_weight

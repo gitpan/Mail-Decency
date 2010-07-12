@@ -1,8 +1,8 @@
 package Mail::Decency::ContentFilter::Core::Virus;
 
-use Moose;
+use Moose::Role;
 
-use version 0.74; our $VERSION = qv( "v0.1.4" );
+use version 0.74; our $VERSION = qv( "v0.1.6" );
 
 use Mail::Decency::ContentFilter::Core::Constants;
 use Data::Dumper;

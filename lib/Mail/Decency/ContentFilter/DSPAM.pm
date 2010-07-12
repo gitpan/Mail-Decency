@@ -2,14 +2,20 @@ package Mail::Decency::ContentFilter::DSPAM;
 
 use Moose;
 extends qw/
-    Mail::Decency::ContentFilter::Core::Cmd
+    Mail::Decency::ContentFilter::Core
+/;
+with qw/
     Mail::Decency::ContentFilter::Core::Spam
+    Mail::Decency::ContentFilter::Core::User
 /;
 
-use version 0.74; our $VERSION = qv( "v0.1.4" );
+use version 0.74; our $VERSION = qv( "v0.1.6" );
 
 use mro 'c3';
+use Net::LMTP;
 use Data::Dumper;
+use MIME::Base64;
+use Mail::Decency::ContentFilter::Core::Constants;
 
 =head1 NAME
 
@@ -17,67 +23,150 @@ Mail::Decency::ContentFilter::DSPAM
 
 =head1 DESCRIPTION
 
-@@ PRE-ALPHA @@
+Uses LMTP to connect directly to running DSPAM server an retreive filter result
 
-Still some issues with dspam chrooting. Maybe requires wrapper.
+=head1 DSPAM CONFIG
 
-@@ PRE-ALPHA @@
+You have to configure decency accordingly to the DSPAM settings. Modify in dspam.conf:
 
-Filter messages through dspam and get result.
+=over
+
+=item * ServerPass.*
+
+DSPAM:
+    ServerPass.Relay1       "secret"
+
+dececny:
+    dspam_client_ident: 'secret@Relay1'
+
+=item * ServerHost, ServerPort
+
+DSPAM:
+    ServerHost      127.0.0.1
+    ServerPort      17000
+
+decency:
+    dspam_host: '127.0.0.1'
+    dspam_port: 17000
+
+=back
+
+=head1 CLASS ATTRIBUTES
+
+=head2 dspam_client_ident : Str
+
+The DSPAM auth string, as set for ClientIdent in dspam.conf
+
+Defaults: secret@Relay1
 
 =cut
 
-has cmd_check => (
-    is      => 'rw',
-    isa     => 'Str',
-    default => '/usr/bin/dspam --client --user %user% --classify'
+has dspam_client_ident => (
+    is        => 'rw',
+    isa       => 'Str',
+    default   => 'secret@Relay1'
 );
 
-has cmd_learn_spam => (
+=head2 dspam_host : Str
+
+Host string/ip where DSPAM runs
+
+Default: 127.0.0.1
+
+=cut
+
+has dspam_host => (
     is      => 'rw',
     isa     => 'Str',
-    default => '/usr/bin/dspam --client --user %user% --mode=teft --class=spam --deliver=spam --stdout'
+    default => '127.0.0.1'
 );
 
-has cmd_unlearn_spam => (
+=head2 dspam_port : Int
+
+Port where DSPAM listens
+
+Default: 1024
+
+=cut
+
+has dspam_port => (
     is      => 'rw',
     isa     => 'Str',
-    default => '/usr/bin/dspam --client --user %user% --mode=toe --class=innocent --deliver=innocent --stdout'
+    default => '1024'
 );
 
-has cmd_learn_ham => (
-    is      => 'rw',
+
+=pod
+
+Private variables
+
+=cut
+
+has mode_check => (
+    is      => 'ro',
     isa     => 'Str',
-    default => '/usr/bin/dspam --client --user %user% --mode=teft --class=innocent --deliver=innocent --stdout'
+    default => '--user %user% --client --classify --stdout'
 );
 
-has cmd_unlearn_ham => (
-    is      => 'rw',
+has mode_learn_spam => (
+    is      => 'ro',
     isa     => 'Str',
-    default => '/usr/bin/dspam --client --user %user% --mode=toe --class=spam --deliver=spam --stdout'
+    default => '--client --user %user% --mode=teft --source=corpus --class=spam --deliver=spam --stdout'
+);
+
+has mode_unlearn_spam => (
+    is      => 'ro',
+    isa     => 'Str',
+    default => '--client --user %user% --mode=toe --source=corpus --class=innocent --deliver=innocent --stdout'
+);
+
+has mode_learn_ham => (
+    is      => 'ro',
+    isa     => 'Str',
+    default => '--client --user %user% --mode=teft --source=corpus --class=innocent --deliver=innocent --stdout'
+);
+
+has mode_unlearn_ham => (
+    is      => 'ro',
+    isa     => 'Str',
+    default => '--client --user %user% --mode=toe --source=corpus --class=spam --deliver=spam --stdout'
 );
 
 =head1 METHODS
 
 
-=head2 handle_filter_result
+=head2 init
 
 =cut
 
-sub handle_filter_result {
-    my ( $self, $result, $exit_status ) = @_;
+sub pre_init {
+    my ( $self ) = @_;
+    push @{ $self->{ config_params } ||=[] }, qw/ dspam_client_ident dspam_host dspam_port /;
+    return ;
+}
+
+=head2 handle
+
+Pipeps mails through DSPAM server, retreives result
+
+=cut
+
+
+sub handle {
+    my ( $self ) = @_;
     
+    # get result from dspam
+    my $result = $self->retreive_result( 'check' );
     
-    # oops, no result -> probably no acces
-    if ( ! $result ) {
-        $self->logger->error( "No result from DSPAM. Probably insufficient access rights (see TrustedUser in DSPAM docu)" );
+    # no result -> do not bother
+    return unless $result;
+    
+    $self->logger->debug2( "DSPAM result: '$result'" );
+    
+    # oops, wrong dspam_client_ident
+    if ( $result =~ /Need MAIL FROM here/ ) {
+        $self->logger->error( "Wrong auth credentials for DSPAM. Please set dspam_client_ident the same as your ServerPass.* in dspam.conf" );
         return ;
-    }
-    
-    # oops, no command line found
-    if ( $result =~ /: not found$/ ) {
-        $self->logger->error( "Could not find dspam: $result / exit: $exit_status" );
-        return;
     }
     
     # parse result
@@ -98,7 +187,6 @@ sub handle_filter_result {
         $weight = $self->weight_spam;
     }
     $self->logger->debug0( "Score mail to '$weight'" );
-    $self->logger->debug3( "Dspam result: $result" );
     
     # add info for noisy headers
     push @info, (
@@ -110,6 +198,102 @@ sub handle_filter_result {
     
     # add weight to content filte score
     return $self->add_spam_score( $weight, \@info );
+}
+
+
+=head2 train
+
+=cut
+
+sub train {
+    my ( $self, $mode ) = @_;
+    
+    die "Train mode has to be 'spam' or 'ham'\n"
+        unless $mode eq 'spam' || $mode eq 'ham';
+    
+    my $result = $self->retreive_result( "learn_${mode}" );
+    print "> R $result\n";
+    return ( $result ? 1 : 0, $result, $result ? 0 : 1 );
+}
+
+
+=head2 retreive_result
+
+Pass mail via L<Net::LMTP> to DSPAM an retreive result
+
+=cut
+
+sub retreive_result {
+    my ( $self, $mode ) = @_;
+    
+    # determine mode
+    my $mode_method = "mode_${mode}";
+    die "Cannot use mode '$mode'. Not defined!\n"
+        unless $self->can( $mode_method );
+    my $mode_cmd = $self->$mode_method;
+    
+    # determine user for mode
+    if ( $mode_cmd =~ /%user%/ ) {
+        my $user = $self->get_user();
+        $mode_cmd =~ s/%user%/$user/g;
+    }
+    
+    
+    # determine timeout
+    my $timeout = $self->timeout - 1;
+    $timeout = 300 if $timeout <= 0;
+    
+    # connect via lmtp
+    my $lmtp;
+    eval {
+        $lmtp = Net::LMTP->new(
+            $self->dspam_host, $self->dspam_port,
+            Timeout => $timeout,
+            Helo => 'decency',
+            Debug => $ENV{ DEBUG_DSPAM } || 0
+        );
+    };
+    
+    # error in connection
+    if ( $@ ) {
+        $self->logger->error( "Error connecting to dspam (". $self->dspam_host. ":". $self->dspam_port. "): $@" );
+        return;
+    }
+    elsif ( ! $lmtp ) {
+        $self->logger->error( "Could not connect to dspam (". $self->dspam_host. ":". $self->dspam_port. "): $@" );
+        return ;
+    }
+    
+    # send hello, authentify
+    $lmtp->_MAIL( "FROM: <". $self->dspam_client_ident. "> DSPAMPROCESSMODE=\"$mode_cmd\"" );
+    
+    # send mail
+    $lmtp->data;
+    
+    # retreive check result (maybe dspam refuses)
+    my ( $check ) = $lmtp->message;
+    if ( $check && $check =~ /DSPAM agent misconfigured:/ ) {
+        $self->logger->error( "Error communicating with DSPAM: $check" );
+        return ;
+    }
+    
+    # write data to dspam
+    open my $fh, "<", $self->file or die "Cannot open current file '". $self->file. "' for read!\n";
+    while ( my $l = <$fh> ) {
+        chomp $l;
+        $lmtp->datasend( $l. CRLF );
+    }
+    close $fh; 
+    $lmtp->dataend;
+    
+    # retreive result
+    my ( $result ) = $lmtp->getline;
+    chomp( $result );
+    
+    # quit
+    $lmtp->quit;
+    
+    return $result;
 }
 
 

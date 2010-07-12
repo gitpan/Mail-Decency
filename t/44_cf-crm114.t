@@ -53,7 +53,7 @@ SKIP: {
         eval {
             my $res = $module->handle();
         };
-        
+        $@ && diag( "Error: $@" );
         ok(
             ! $@ && scalar @{ $content_filter->session_data->spam_details } == 1,
             "Filter result found"

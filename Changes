@@ -1,3 +1,13 @@
+0.1.6 2010-07-12 Ulrich Kautz <uk@fortrabbit.de>
+    * Updated description to clearify the goal of this approach
+    * Updated M::D::LogParser::Core::PostfixParser docs for others as a background to implement other MTAs
+    * Removed Geo::IP from dependencies, test will be skipped if not installed.
+    * Added Net::DNSBL::Client as dependency in tests
+    * Implemented DSPAM via Net::LMTP (instead of command line client)
+    * Converted M::D::ContentFilter::Core::* to Moose::Role
+    * Implemented SpamAsssassin via Mail::SpamAssassin::Client
+    * Enabled train mode for CF without cmd_-methods (DSPAM, SpamAssassin)
+
 0.1.5 2010-07-02 Ulrich Kautz <uk@fortrabbit.de>
     * Association module passes mails which pass SPF
     * Added policy module: Basic (re-implement postfix basic checks, such as reverse hostname and hostname fqdn checks.. but with weighting)

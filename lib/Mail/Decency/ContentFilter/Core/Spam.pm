@@ -1,8 +1,8 @@
 package Mail::Decency::ContentFilter::Core::Spam;
 
-use Moose;
+use Moose::Role;
 
-use version 0.74; our $VERSION = qv( "v0.1.4" );
+use version 0.74; our $VERSION = qv( "v0.1.6" );
 
 =head1 NAME
 
@@ -39,14 +39,10 @@ Add check params: weight_innocent, weight_spam to list of check params
 
 =cut
 
-sub pre_init {
+before init => sub {
     my ( $self ) = @_;
-    
-    # init base, assure we get mime encoded
-    $self->maybe::next::method();
-    
     push @{ $self->{ config_params } ||=[] }, qw/ weight_innocent weight_spam /;
-}
+};
 
 =head2 add_spam_score
 

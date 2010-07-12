@@ -4,7 +4,7 @@ package Mail::Decency;
 use strict;
 use warnings;
 
-use version 0.74; our $VERSION = qv( "v0.1.5" );
+use version 0.74; our $VERSION = qv( "v0.1.6" );
 
 
 =head1 NAME
@@ -60,6 +60,18 @@ The third reason is distributability (is this an English word?). In high traffic
 
 The fourth and last reason is more personal. Complex and voluminous configuration lead often to human mistakes (or at least on my part). decency tries to have a simplified and maintainable configuration. Then again, maybe the configuration seams much easier to me, because i wrote it..
 
+=head3 IS IT "POSTFIX ONLY" ?
+
+No, or at least it does not has to be. For now, mainly postfix is supported, but most other MTAs should be able to implement the content filter. Exim should be able to use the policy server (with a L<<a href="http://www.bebt.de/blog/debian/archives/2006/07/30/T06_12_27/index.html">work around</a>>). For the log parser, there is only a postfix parser modules available, but others can be implemented. Because i work mainly (you could say only) with postfix, i cannot implement other "bindings" then for postfix. But i try to keep it as modular as possible, not to slow down any effort to do this.
+
+=head3 WHAT ABOUT QPSMTPD ?
+
+Yes, there is qpsmtpd, which does implement the above mentioned techniques (content filtering, policy server) and is also open source. However the approach is entirely different: it is a replacement for your smtp(d) server. It  does implements it's policy and content filters capabilities and then delivers the mails to your MTA (postfix, exim, qmail, ..). This is of course more flexible regarding the mail servers which support it, but also reduces the "backend MTA" to a delivery server. decency's approach is the "other way around": it relies on your MTA as the "main SMTP server" and integrates itself below.
+
+To put it exaggeratedly: with qpsmtpd you could substitute the backend MTA. With decency, you could substitute your anti-spam measurements. Therefore i would not argue that both address the same issue.
+
+Which approach is better or worse is not the question (imho), it is more: which can you integrate in your environment.
+
 =head2 HOW DOES IT WORK ?
 
 There are three components involved in the process:
@@ -107,6 +119,9 @@ Mail server log analyses is most important for running a healthy system, this tr
 
 =back
 
+=head2 SHOULD I USE IT IN PRODUCTION
+
+No. Not yet. Far more
 
 =head1 SEE ALSO
 

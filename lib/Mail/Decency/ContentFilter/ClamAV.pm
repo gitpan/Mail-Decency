@@ -1,9 +1,14 @@
 package Mail::Decency::ContentFilter::ClamAV;
 
 use Moose;
-extends 'Mail::Decency::ContentFilter::Core', 'Mail::Decency::ContentFilter::Core::Virus';
+extends qw/
+    Mail::Decency::ContentFilter::Core
+/;
+with qw/
+    Mail::Decency::ContentFilter::Core::Virus
+/;
 
-use version 0.74; our $VERSION = qv( "v0.1.4" );
+use version 0.74; our $VERSION = qv( "v0.1.6" );
 
 use mro 'c3';
 use Data::Dumper;

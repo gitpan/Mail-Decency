@@ -2,7 +2,7 @@ package Mail::Decency::LogParser::Core::PostfixParser;
 
 use Moose::Role;
 
-use version 0.74; our $VERSION = qv( "v0.1.4" );
+use version 0.74; our $VERSION = qv( "v0.1.6" );
 
 use Data::Dumper;
 
@@ -12,7 +12,7 @@ Mail::Decency::LogParser::Core::LogParser
 
 =head1 DESCRIPTION
 
-Parse logs in postfix style
+Parse logs in postfix style. Also can be used as background for another log parser module
 
 =cut
 
@@ -25,6 +25,79 @@ our $RX_HOST_AND_IP = qr/([^\]]*?)\[([^\]]+?)\]/;
 =head2 parse_line
 
 Parses a single line and returns a parsed hashref which will passed to the handling modules.
+
+Returns parsed line as hashref:
+
+    {
+        # wheter mail was rejected
+        reject => [0|1],
+        
+        # wheter the log processing of this mail delivery is finished
+        final  => [0|1],
+        
+        # the hostname sending/injecting the mail
+        host   => [string],
+        
+        # the ip sending/injecting the mail
+        ip     => [ipv4 or ipv6 string],
+        
+        # the reverse hostname of the sending/injecting mails seerver
+        rdns   => [ipv4 or ipv6 string],
+        
+        # the helo name of the sending/injecting mail server
+        helo => [string],
+        
+        # the senders/recipients address or domain
+        (from|to)_(address|domain) => [string]
+        
+        
+        #
+        # REJECTED
+        #
+        
+        # final deliver/reject code (200, 554, ..)
+        code   => [string],
+        
+        # for rejections: the reason why the mail is rejected
+        message => [string],
+        
+        #
+        # NOT REJECTED
+        #
+        
+        # wheter the mail has been queued (rejected mails will not)
+        queued  => [0|1],
+        
+        # the current queue id in the log
+        queue_id => [string],
+        
+        # depending on the MTA, sub division which handled thisi particula log line
+        prog   => [string, eg "bounce" for postfix..],
+        
+        # the relay target (hostname, ip), if any
+        relay_(host|ip) => [string],
+        
+        # the size of the mail in bytes
+        size => [integer],
+        
+        # wheter the mail has been removed (can be happen before final)
+        removed => [0|1],
+        
+        # what the final handling/delivery was
+        (bounced|sent|deferred) => [0|1],
+        
+        # the next queue id, eg if the mail is to be bounced
+        next_id => [string],
+        
+        # the previous queue id, eg if this is a bounce mail
+        prev_id => [string],
+        
+        # wheter the current mail is a bounce (eg this is the bounce mail or the mail to be bounced)
+        is_bounce => [0|1],
+        
+        # the original from (a bounce mail will be delivered from "")
+        orig_from => [string],
+    }
 
 =cut
 

@@ -42,10 +42,6 @@ SKIP: {
     skip "dspam test, enable with USE_DSPAM=1 and set optional DSPAM_USER for the tests (default: global_shared)", 2
         unless $ENV{ USE_DSPAM };
     
-    # set check command..
-    $module->cmd_check( "$dspam --client --user \%user\% --classify" );
-    
-    
     FILTER_TEST: {
         my ( $file, $size ) = TestContentFilter::get_test_file();
         $content_filter->session_init( $file, $size );

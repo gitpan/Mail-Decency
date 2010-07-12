@@ -3,10 +3,12 @@ package Mail::Decency::ContentFilter::DKIM;
 use Moose;
 extends qw/
     Mail::Decency::ContentFilter::Core
+/;
+with qw/
     Mail::Decency::ContentFilter::Core::Spam
 /;
 
-use version 0.74; our $VERSION = qv( "v0.1.4" );
+use version 0.74; our $VERSION = qv( "v0.1.6" );
 
 use mro 'c3';
 

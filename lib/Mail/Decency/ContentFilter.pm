@@ -11,7 +11,7 @@ with qw/
     Mail::Decency::Core::Excludes
 /;
 
-use version 0.74; our $VERSION = qv( "v0.1.5" );
+use version 0.74; our $VERSION = qv( "v0.1.6" );
 
 use feature qw/ switch /;
 
@@ -724,6 +724,8 @@ sub run {
 
 =head2 train
 
+Train spam/ham into modules
+
 =cut
 
 sub train {
@@ -735,12 +737,19 @@ sub train {
         : 'cmd_learn_ham'
     ;
     
-    # determine all modules being trainable
-    my @trainable = grep {
-        $_->isa( 'Mail::Decency::ContentFilter::Core::Spam' )
-        && $_->can( $train_cmd )
+    # determine all modules being trainable (Cmd)
+    my @trainable = map {
+        $_->can( $train_cmd )
+            ? [ $train_cmd => $_ ]
+            : [ train => $_ ]
+        ;
+    } grep {
+        $_->does( 'Mail::Decency::ContentFilter::Core::Spam' )
+        && ( $_->can( $train_cmd ) || $_->can( 'train' ) )
         && ! $_->config->{ disable_train }
     } @{ $self->childs };
+    
+    # none found ?
     die "No trainable modules enabled\n"
         unless @trainable;
     
@@ -779,7 +788,8 @@ sub train {
         my $size = -s $tn;
         $self->session_init( $tn, $size );
         
-        foreach my $module( @trainable ) {
+        foreach my $ref( @trainable ) {
+            my ( $method, $module ) = @$ref;
             
             # check wheter mail is spam or not
             $self->session_data->spam_score( 0 );
@@ -803,9 +813,17 @@ sub train {
             
             # run filter with train command now
             my ( $res, $result, $exit_code );
-            eval {
-                ( $res, $result, $exit_code ) = $module->cmd_filter( $train_cmd );
-            };
+            
+            if ( $method =~ /^cmd_/ ) {
+                eval {
+                    ( $res, $result, $exit_code ) = $module->cmd_filter( $train_cmd );
+                };
+            }
+            else {
+                eval {
+                    ( $res, $result, $exit_code ) = $module->train( $args_ref->{ spam } ? 'spam' : 'ham' );
+                };
+            }
             my $error = $@;
             
             # having unexpected error
@@ -956,7 +974,7 @@ sub handle {
         $self->logger->debug3( "Handle to '$filter'" );
         
         if ( $self->has_exclusions && $self->do_exclude( $filter ) ) {
-            $self->logger->debug2( "Exclude $filter" );
+            $self->logger->debug2( "Exclude $filter for ". ( $self->session_data->from || "" ). " -> ". $self->to );
             next;
         }
         

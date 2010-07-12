@@ -2,15 +2,19 @@ package Mail::Decency::ContentFilter::SpamAssassin;
 
 use Moose;
 extends qw/
-    Mail::Decency::ContentFilter::Core::Cmd
+    Mail::Decency::ContentFilter::Core
+/;
+with qw/
+    Mail::Decency::ContentFilter::Core::User
     Mail::Decency::ContentFilter::Core::Spam
     Mail::Decency::ContentFilter::Core::WeightTranslate
 /;
 
-use version 0.74; our $VERSION = qv( "v0.1.4" );
+use version 0.74; our $VERSION = qv( "v0.1.6" );
 
 use mro 'c3';
 use Data::Dumper;
+use Mail::SpamAssassin::Client;
 use File::Temp qw/ tempfile /;
 
 =head1 NAME
@@ -18,12 +22,6 @@ use File::Temp qw/ tempfile /;
 Mail::Decency::ContentFilter::SpamAssassin
 
 =head1 DESCRIPTION
-
-@@ PRE-ALPHA @@
-
-Untested
-
-@@ PRE-ALPHA @@
 
 Filter messages through spamc and translate results
 
@@ -40,85 +38,187 @@ Filter messages through spamc and translate results
 
 =head1 CLASS ATTRIBUTES
 
+
+=head2 host
+
+Spamassassin host .. use this or socket
+
 =cut
 
-has cmd_check => (
+has host => (
     is      => 'rw',
     isa     => 'Str',
-    default => '/usr/bin/spamc -u %user% --headers'
+    default => 'localhost'
+);
+
+
+=head2 port
+
+Spamassassin port .. if host is used
+
+=cut
+
+has port => (
+    is      => 'rw',
+    isa     => 'Int',
+    default => 783
+);
+
+
+=head2 socket
+
+Spamassassin socket .. instead of host and port
+
+=cut
+
+has socket => (
+    is        => 'rw',
+    isa       => 'Str',
+    predicate => 'has_socket'
 );
 
 
 =head1 METHODS
 
 
-=head2 handle_filter_result
+=head2 pre_init
 
 =cut
 
-sub handle_filter_result {
-    my ( $self, $result ) = @_;
-    
-    my %header;
-    
-    # parse result
-    my %parsed = map {
-        my ( $n, $v ) = /^X-Spam-(\S+?):\s+(.*?)$/;
-        ( $n => lc( $v ) );
-    } grep {
-        /^X-Spam-/;
-    } split( /\n/, $result );
-    
-    # found status ?
-    if ( $parsed{ Status } ) {
-        my $weight = 0;
-        
-        # wheter the whole is spam!
-        my $status = index( $parsed{ Status }, 'No' ) == 0
-            ? 'ham'
-            : 'spam'
-        ;
-        
-        my @info = ( "SpamAssassin status: $status" );
-        
-        # get sa test info
-        my $sa_tests = $parsed{ Status } =~ /tests=([A-Z0-9,]+)/;
-        $sa_tests ||= "";
-        push @info, "SpamAssassin tests: $sa_tests";
-        
-        # translate weight from crm114 to our requirements
-        if ( $self->has_weight_translate ) {
-            
-            # fetch weight and translate
-            my ( $sa_weight ) = $parsed{ Status } =~ /score=(\-?\d+(?:\.\d+)?)/;
-            $weight = $self->translate_weight( $sa_weight );
-            
-            # remember info for headers
-            push @info, "SpamAssassin score: $sa_weight";
-            
-            $self->logger->debug0( "Translated score from '$sa_weight' to '$weight'" );
-        }
-        
-        # just use it's results -> spam
-        elsif ( $status eq 'spam' ) {
-            $weight = $self->weight_spam;
-            $self->logger->debug0( "Use spam status, set score to '$weight'" );
-        }
-        
-        # s ham
-        elsif ( $status eq 'ham' ) {
-            $weight = $self->weight_innocent;
-            $self->logger->debug0( "Use ham status, set score to '$weight'" );
-        }
-        
-        # add weight to content filte score
-        return $self->add_spam_score( $weight, \@info );
-    }
-    
-    # return ok
+sub pre_init {
+    my ( $self ) = @_;
+    push @{ $self->{ config_params } ||=[] }, qw/ host port socket /;
     return ;
 }
 
+
+=head2 handle
+
+Use L<Mail::SpamAssassin::Client> to retreive filter result from SpamAssassin
+
+=cut
+
+sub handle {
+    my ( $self ) = @_;
+    
+    my $client = $self->get_client();
+    return unless $client;
+    
+    # process mail
+    my $ref = $client->process( $self->mime->stringify );
+    
+    # no result ?
+    unless ( $ref ) {
+        $self->logger->error( "Failed to receive result from spamd" );
+        return ;
+    }
+    
+    # calc weight
+    my $weight = 0;
+    
+    # use scoring ?
+    if ( $self->has_weight_translate ) {
+        $weight = $self->translate_weight( $ref->{ score } );
+    }
+    
+    # is HAM ?
+    elsif ( $ref->{ isspam } eq 'False' ) {
+        $weight = $self->weight_innocent;
+    }
+    
+    # is SPAM..
+    else {
+        $weight = $self->weight_spam;
+    }
+    $self->logger->debug0( "Score mail to '$weight'" );
+    
+    # get header
+    my ( $last_header, %header ) = ();
+    foreach my $l( split( /\n/, $ref->{ message } ) ) {
+        if ( $l =~ /^X-Spam-(\S+):\s*(.*?)$/ ) {
+            ( $last_header, my $value ) = ( $1, $2 );
+            $header{ $last_header } = $value;
+        }
+        elsif ( $last_header && $l =~ /^\s+(.+?)$/ ) {
+            $header{ $last_header } .= $1;
+        }
+        else {
+            last;
+        }
+    }
+    
+    # add weight to content filte score
+    return $self->add_spam_score( $weight, [
+        "SpamAssassin Status: ". ( $header{ Status } || "UNKNOWN" )
+    ] );
+}
+
+
+=head2 train
+
+Train mails into SpamAssassin
+
+=cut
+
+sub train {
+    my ( $self, $mode ) = @_;
+    
+    die "Train mode has to be 'spam' or 'ham'\n"
+        unless $mode eq 'spam' || $mode eq 'ham';
+    
+    my $client = $self->get_client();
+    return ( 0, undef, 1 ) unless $client;
+    
+    my $learned = $client->learn( $self->mime->stringify, $mode eq 'spam' ? 0 : 1 );
+    return ( $learned, "OK", 0 );
+}
+
+
+=head2 get_client
+
+Creates instance of L<Mail::SpamAssassin::Client> and returns it
+
+=cut
+
+sub get_client {
+    my ( $self ) = @_;
+    
+    my $user = $self->get_user();
+    my $client;
+    eval {
+        $client = $self->has_socket
+            ? Mail::SpamAssassin::Client->new( {
+                socketpath => $self->socket,
+                user => $user
+            } )
+            : Mail::SpamAssassin::Client->new( {
+                host => $self->host,
+                port => $self->port,
+                user => $user
+            } )
+        ;
+    };
+    
+    # errro setup client
+    if ( $@ ) {
+        warn "> ERR $@\n";
+        $self->logger->error( "Error connecting to spamd: $@" );
+        return;
+    }
+    elsif ( ! $client ) {
+        warn "> OOPS \n";
+        $self->logger->error( "Could not create SpamAssassin client" );
+        return;
+    }
+    
+    # cannotping spamd
+    unless ( $client->ping ) {
+        $self->logger->error( "Cannot ping spamd. Down ?" );
+        return ;
+    }
+    
+    return $client;
+}
 
 =head1 AUTHOR
 

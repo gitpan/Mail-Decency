@@ -3,7 +3,7 @@ package Mail::Decency::Policy::GeoWeight;
 use Moose;
 extends 'Mail::Decency::Policy::Core';
 
-use version 0.74; our $VERSION = qv( "v0.1.4" );
+use version 0.74; our $VERSION = qv( "v0.1.6" );
 
 use Geo::IP;
 use Data::Dumper;
@@ -16,6 +16,8 @@ Mail::Decency::Policy::GeoWeight
 =head1 DESCRIPTION
 
 Implements weighting and statistics by countries. It can be used for collecting stats from which countries the senders come from as well as for fighting spam by scoring certain countries (negative or positive).
+
+B<This module requires Geo::IP which itself requires various libraries on your OS.> 
 
 =head1 CONFIG
 
